@@ -1,8 +1,0 @@
-#product-form {
-    .border-input-edge {
-        @apply border-input-edge;
-    }
-    .custom-button {
-        @apply border-input-edge;
-    }
-}

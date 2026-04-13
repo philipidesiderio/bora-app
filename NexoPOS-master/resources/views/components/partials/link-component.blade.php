@@ -1,1 +1,0 @@
-<ns-link type="{{ $type ?? 'info' }}" href="{{ $href }}" to="{{ $to }}">{{ $label }}</ns-link>
