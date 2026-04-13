@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm db:push)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm --filter @bora/db db:push)",
+      "mcp__b953a2c6-29b9-4c49-b04c-a873f5f892a9__list_projects",
+      "mcp__b953a2c6-29b9-4c49-b04c-a873f5f892a9__list_tables",
+      "mcp__b953a2c6-29b9-4c49-b04c-a873f5f892a9__apply_migration",
+      "Bash(pnpm dev:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(grep -l \"api\\\\.\" \"E:\\\\Philipi\\\\bora.app\\\\sistema_bora.app\\\\bora-app\\\\apps\\\\web\\\\src\\\\components\\\\dashboard\"/*.tsx)",
+      "mcp__b953a2c6-29b9-4c49-b04c-a873f5f892a9__execute_sql",
+      "mcp__b953a2c6-29b9-4c49-b04c-a873f5f892a9__get_publishable_keys",
+      "Bash(pnpm add:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

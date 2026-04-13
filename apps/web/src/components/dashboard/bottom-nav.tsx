@@ -1,0 +1,128 @@
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { LayoutDashboard, ShoppingCart, ClipboardList, Users, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
+
+const MAIN_TABS = [
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Início"   },
+  { href: "/dashboard/pedidos",  icon: ClipboardList,   label: "Pedidos"  },
+  { href: "/dashboard/clientes", icon: Users,           label: "Clientes" },
+];
+
+const MORE_ITEMS = [
+  { href: "/dashboard/estoque",      emoji: "📦", label: "Estoque"      },
+  { href: "/dashboard/financeiro",   emoji: "💰", label: "Financeiro"   },
+  { href: "/dashboard/caixa",        emoji: "🏧", label: "Caixa"        },
+  { href: "/dashboard/relatorios",   emoji: "📈", label: "Relatórios"   },
+  { href: "/dashboard/produtos",     emoji: "🏷️", label: "Produtos"     },
+  { href: "/dashboard/fornecedores", emoji: "🚚", label: "Fornecedores" },
+  { href: "/dashboard/cupons",       emoji: "🎟️", label: "Cupons"       },
+  { href: "/dashboard/historico",    emoji: "📜", label: "Histórico"    },
+  { href: "/dashboard/ajustes",      emoji: "⚙️", label: "Configurações"},
+];
+
+export function BottomNav() {
+  const pathname  = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  return (
+    <>
+      {/* Overlay do menu "Mais" */}
+      {moreOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setMoreOpen(false)}
+        />
+      )}
+
+      {/* Drawer "Mais" */}
+      <div className={cn(
+        "fixed bottom-20 left-4 right-4 z-50 bg-card rounded-3xl border border-border shadow-2xl p-4 transition-all duration-300",
+        moreOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+      )}>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1">
+          Menu completo
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {MORE_ITEMS.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMoreOpen(false)}
+              className={cn(
+                "flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center transition-all active:scale-95",
+                pathname === item.href
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted/60 text-foreground hover:bg-muted"
+              )}
+            >
+              <span className="text-2xl">{item.emoji}</span>
+              <span className="text-xs font-medium leading-tight">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom nav bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
+        <div className="bg-card/95 backdrop-blur-xl border-t border-border px-2 pb-safe">
+          <div className="flex items-end justify-around h-16">
+            {/* Tabs esquerdas */}
+            {MAIN_TABS.slice(0, 2).map(tab => {
+              const Icon = tab.icon;
+              const active = pathname === tab.href;
+              return (
+                <Link key={tab.href} href={tab.href}
+                  className={cn(
+                    "flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all active:scale-90",
+                    active ? "text-primary" : "text-muted-foreground"
+                  )}>
+                  <Icon className={cn("h-5 w-5 transition-all", active && "scale-110")} strokeWidth={active ? 2.5 : 1.8} />
+                  <span className="text-[10px] font-medium">{tab.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* FAB central — PDV */}
+            <Link href="/dashboard/vender"
+              className="flex flex-col items-center -mt-6 active:scale-90 transition-all">
+              <div className="w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center border-4 border-background">
+                <ShoppingCart className="h-6 w-6 text-white" strokeWidth={2} />
+              </div>
+              <span className="text-[10px] font-semibold text-primary mt-0.5">Vender</span>
+            </Link>
+
+            {/* Tabs direitas */}
+            {MAIN_TABS.slice(2).map(tab => {
+              const Icon = tab.icon;
+              const active = pathname === tab.href;
+              return (
+                <Link key={tab.href} href={tab.href}
+                  className={cn(
+                    "flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all active:scale-90",
+                    active ? "text-primary" : "text-muted-foreground"
+                  )}>
+                  <Icon className={cn("h-5 w-5 transition-all", active && "scale-110")} strokeWidth={active ? 2.5 : 1.8} />
+                  <span className="text-[10px] font-medium">{tab.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* Mais */}
+            <button
+              onClick={() => setMoreOpen(v => !v)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all active:scale-90",
+                moreOpen ? "text-primary" : "text-muted-foreground"
+              )}>
+              <MoreHorizontal className={cn("h-5 w-5 transition-all", moreOpen && "scale-110")} strokeWidth={1.8} />
+              <span className="text-[10px] font-medium">Mais</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </>
+  );
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@bora/auth",
+  "version": "0.1.0",
+  "private": true,
+  "exports": { ".": "./src/index.ts" },
+  "main": "./src/index.ts",
+  "dependencies": {
+    "better-auth": "^1.0.0"
+  },
+  "devDependencies": { "typescript": "^5.4.0" }
+}
