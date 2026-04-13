@@ -135,7 +135,7 @@ export default function FinanceiroPage() {
               />
             )}
             {session ? (
-              <Button variant="outline" size="sm" onClick={() => closeCaixaMut.mutate({ closingFloat: 0 })} disabled={closeCaixaMut.isPending}>
+              <Button variant="outline" size="sm" onClick={() => closeCaixaMut.mutate({ closingBalance: 0 })} disabled={closeCaixaMut.isPending}>
                 Fechar Caixa
               </Button>
             ) : (
