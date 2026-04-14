@@ -23,15 +23,15 @@ export const transactions = pgTable("transactions", {
 });
 
 export const cashSessions = pgTable("cash_sessions", {
-  id:           text("id").primaryKey().$defaultFn(() => createId()),
-  tenantId:     text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  openedBy:     text("opened_by").notNull(),
-  openingFloat: numeric("opening_float", { precision: 10, scale: 2 }).default("0"),
-  closingFloat: numeric("closing_float", { precision: 10, scale: 2 }),
-  totalSales:   numeric("total_sales",   { precision: 10, scale: 2 }).default("0"),
-  isOpen:       boolean("is_open").default(true).notNull(),
-  openedAt:     timestamp("opened_at").defaultNow().notNull(),
-  closedAt:     timestamp("closed_at"),
+  id:            text("id").primaryKey().$defaultFn(() => createId()),
+  tenantId:      text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  openedBy:      text("opened_by").notNull(),
+  openingBalance: numeric("opening_balance", { precision: 10, scale: 2 }).default("0"),
+  closingBalance: numeric("closing_balance", { precision: 10, scale: 2 }),
+  totalSales:    numeric("total_sales",    { precision: 10, scale: 2 }).default("0"),
+  isOpen:        boolean("is_open").default(true).notNull(),
+  openedAt:      timestamp("opened_at").defaultNow().notNull(),
+  closedAt:      timestamp("closed_at"),
 });
 
 export type Transaction  = typeof transactions.$inferSelect;
