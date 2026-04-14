@@ -32,14 +32,14 @@ export default async function DashboardPage() {
 
       <div>
         <h1 className="font-heading text-2xl font-bold">
-          Bom dia, <span className="text-primary">{stats.userName}!</span> 👋
+          Bom dia, <span className="text-primary">{stats.userName}!</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Aqui está o resumo do seu negócio hoje.
         </p>
       </div>
 
-      <StatsCards stats={stats} />
+      <StatsCards />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
         <SalesChart />

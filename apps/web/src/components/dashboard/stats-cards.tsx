@@ -9,6 +9,16 @@ interface StatCardProps {
   color?: string;
 }
 
+interface StatsCardsProps {
+  stats?: {
+    userName: string;
+    todaySales: number;
+    todayOrders: number;
+    totalCustomers: number;
+    lowStockCount: number;
+  };
+}
+
 function StatCard({ label, value, icon: Icon, trend, color = "text-primary" }: StatCardProps) {
   return (
     <div className="bg-card rounded-xl border p-4">
