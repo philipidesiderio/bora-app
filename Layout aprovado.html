@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bora.app — Preview Mobile 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── PALETA 2026 ─────────────────────────────────────────
+   Tendência: Warm Neutral + Sage + Mocha + Cloud Dancer
+   Inspirado em: Pantone 2025/2026, Envato Trends, IxDF
+──────────────────────────────────────────────────────── */
+:root {
+  /* Base */
+  --cream:      #F5F0E8;   /* Cloud Dancer quente — fundo principal */
+  --offwhite:   #FEFCF8;   /* Cartões e superfícies */
+  --bone:       #EDE8DF;   /* Bordas, divisores */
+  --sand:       #E2D9CC;   /* Hover, input BG */
+
+  /* Texto */
+  --espresso:   #2C2416;   /* Texto principal — Mocha deep */
+  --mocha:      #6B5744;   /* Texto secundário */
+  --taupe:      #9B8B7A;   /* Texto muted */
+  --dust:       #C4B8AB;   /* Placeholder, dim */
+
+  /* Primária — Sage Green (tendência wellness/fintech 2026) */
+  --sage:       #7A9E7E;   /* CTA principal */
+  --sage-light: #9BB89F;   /* Hover */
+  --sage-dark:  #5C7D60;   /* Active */
+  --sage-pale:  #E8F0E9;   /* Background pill */
+  --sage-mid:   #C5D9C7;   /* Bordas sage */
+
+  /* Acento — Terracotta/Coral quente */
+  --terra:      #C4714A;   /* Alertas, destaques */
+  --terra-pale: #F5E8E0;   /* BG terracota */
+  --terra-mid:  #E4C0AD;
+
+  /* Acento 2 — Lilac suave */
+  --lilac:      #9B8EC4;
+  --lilac-pale: #EEEAF6;
+  --lilac-mid:  #CFC8E8;
+
+  /* Status */
+  --success:    #5C8C65;
+  --warning:    #C49B3A;
+  --error:      #B85450;
+  --success-bg: #E6F0E7;
+  --warning-bg: #F5EDD8;
+  --error-bg:   #F5E5E4;
+
+  --fh: 'Syne', sans-serif;
+  --fb: 'DM Sans', sans-serif;
+  --fm: 'DM Mono', monospace;
+  --r: 16px; --rs: 10px; --rxl: 24px;
+  --shadow: 0 2px 12px rgba(44,36,22,.08);
+  --shadow-md: 0 4px 24px rgba(44,36,22,.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size: 14px; }
+body {
+  font-family: var(--fb);
+  background: #E8E2D8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+  gap: 24px;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  text-align: center;
+  max-width: 420px;
+}
+.page-header h1 {
+  font-family: var(--fh);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--espresso);
+  margin-bottom: 4px;
+}
+.page-header h1 span { color: var(--sage); }
+.page-header p { font-size: .78rem; color: var(--mocha); }
+
+/* ── PALETTE STRIP ── */
+.palette {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 460px;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.swatch-color {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(44,36,22,.08);
+}
+.swatch-label { font-size: .5rem; color: var(--taupe); font-family: var(--fm); }
+
+/* ── SCREENS WRAPPER ── */
+.screens-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ── PHONE FRAME ── */
+.phone {
+  width: 320px;
+  background: var(--espresso);
+  border-radius: 44px;
+  padding: 10px;
+  box-shadow: 0 24px 64px rgba(44,36,22,.35), 0 0 0 1px rgba(44,36,22,.5);
+  position: relative;
+  flex-shrink: 0;
+}
+.phone-inner {
+  background: var(--cream);
+  border-radius: 36px;
+  overflow: hidden;
+  height: 640px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.phone-notch {
+  height: 28px;
+  background: var(--espresso);
+  border-radius: 0 0 20px 20px;
+  margin: 0 auto;
+  width: 100px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+/* ── SCREEN LABEL ── */
+.screen-label {
+  text-align: center;
+  margin-top: 8px;
+}
+.screen-label span {
+  font-family: var(--fh);
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--espresso);
+  background: var(--offwhite);
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--bone);
+}
+
+/* ══════════════════════════════════════
+   TELA 1 — DASHBOARD
+══════════════════════════════════════ */
+.s1 { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-top: 28px; }
+.s1::-webkit-scrollbar { display: none; }
+
+/* Topbar */
+.s1-top {
+  padding: 12px 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.s1-greeting { }
+.s1-greeting .gday { font-size: .6rem; color: var(--taupe); letter-spacing: .06em; text-transform: uppercase; font-family: var(--fm); margin-bottom: 1px; }
+.s1-greeting .gname { font-family: var(--fh); font-size: 1.1rem; font-weight: 700; color: var(--espresso); }
+.s1-avatar {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--sage), var(--sage-dark));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--fh); font-weight: 700; font-size: .75rem; color: #fff;
+  box-shadow: 0 2px 8px rgba(92,125,96,.3);
+}
+
+/* Saldo card */
+.balance-card {
+  margin: 8px 16px;
+  background: var(--espresso);
+  border-radius: var(--rxl);
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.balance-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  background: rgba(122,158,126,.15);
+  border-radius: 50%;
+}
+.balance-card::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: -20px;
+  width: 90px; height: 90px;
+  background: rgba(122,158,126,.08);
+  border-radius: 50%;
+}
+.bc-label { font-size: .58rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .08em; font-family: var(--fm); margin-bottom: 4px; }
+.bc-value { font-family: var(--fh); font-size: 1.7rem; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 6px; }
+.bc-change { display: inline-flex; align-items: center; gap: 4px; font-size: .65rem; color: var(--sage-light); font-weight: 500; }
+.bc-change::before { content: '↑'; }
+
+/* Nav pills */
+.nav-pills {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 4px;
+  overflow-x: auto;
+}
+.nav-pills::-webkit-scrollbar { display: none; }
+.np {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--bone);
+  color: var(--taupe);
+  background: var(--offwhite);
+  transition: all .18s;
+}
+.np.active {
+  background: var(--sage);
+  color: #fff;
+  border-color: var(--sage);
+}
+
+/* Resumo */
+.section-title {
+  padding: 10px 16px 6px;
+  font-family: var(--fh);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--espresso);
+}
+.resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 16px;
+}
+.resumo-card {
+  background: var(--offwhite);
+  border: 1px solid var(--bone);
+  border-radius: var(--r);
+  padding: 10px;
+  box-shadow: var(--shadow);
+}
+.rc-icon { font-size: 1.1rem; margin-bottom: 5px; }
+.rc-label { font-size: .58rem; color: var(--taupe); margin-bottom: 2px; }
+.rc-value { font-family: var(--fh); font-size: .78rem; font-weight: 700; color: var(--espresso); }
+.rc-value.sage { color: var(--sage-dark); }
+.rc-value.terra { color: var(--terra); }
+
+/* Atividade */
+.activity-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.act {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--offwhite);
+  border: 1px solid var(--bone);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+.act-ico-wrap {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.act-info { flex: 1; }
+.act-name { font-size: .75rem; font-weight: 600; color: var(--espresso); }
+.act-time { font-size: .6rem; color: var(--taupe); margin-top: 1px; }
+.act-amount { font-family: var(--fh); font-size: .78rem; font-weight: 700; }
+.act-amount.neg { color: var(--terra); }
+.act-amount.pos { color: var(--success); }
+
+/* Bottom Nav */
+.bottom-nav {
+  margin-top: auto;
+  background: var(--offwhite);
+  border-top: 1px solid var(--bone);
+  padding: 8px 0 10px;
+  display: flex;
+  justify-content: space-around;
+  flex-shrink: 0;
+}
+.bn-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; padding: 4px 8px;
+}
+.bn-icon { font-size: 1.1rem; }
+.bn-label { font-size: .52rem; color: var(--taupe); }
+.bn-item.active .bn-icon { background: var(--espresso); border-radius: 8px; padding: 3px 8px; }
+.bn-item.active .bn-label { color: var(--espresso); font-weight: 600; }
+
+/* ══════════════════════════════════════
+   TELA 2 — PDV / VENDER
+══════════════════════════════════════ */
+.s2 { display: flex; flex-direction: column; height: 100%; padding-top: 28px; }
+
+.s2-header {
+  padding: 12px 16px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.s2-title { font-family: var(--fh); font-size: 1rem; font-weight: 700; color: var(--espresso); }
+.s2-cart-btn {
+  position: relative;
+  background: var(--sage);
+  border-radius: 12px;
+  padding: 7px 12px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: .7rem; font-weight: 600; color: #fff;
+  box-shadow: 0 2px 8px rgba(122,158,126,.3);
+}
+.cart-num {
+  position: absolute; top: -5px; right: -5px;
+  width: 16px; height: 16px;
+  background: var(--terra);
+  border-radius: 50%; color: #fff;
+  font-size: .55rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--cream);
+}
+
+/* Search */
+.s2-search {
+  margin: 0 16px 10px;
+  position: relative;
+}
+.s2-search input {
+  width: 100%;
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: 12px;
+  padding: 9px 14px 9px 34px;
+  font-size: .75rem;
+  color: var(--espresso);
+  font-family: var(--fb);
+  outline: none;
+  transition: border .18s;
+}
+.s2-search input:focus { border-color: var(--sage-mid); }
+.s2-search .search-icon { position: absolute; left: 11px; top: 10px; color: var(--taupe); font-size: .85rem; }
+
+/* Categories */
+.s2-cats {
+  display: flex; gap: 6px;
+  padding: 0 16px 10px;
+  overflow-x: auto;
+}
+.s2-cats::-webkit-scrollbar { display: none; }
+.s2c {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: .65rem;
+  font-weight: 500;
+  border: 1.5px solid var(--bone);
+  color: var(--taupe);
+  background: var(--offwhite);
+  cursor: pointer;
+  transition: all .18s;
+}
+.s2c.active { background: var(--sage-pale); border-color: var(--sage-mid); color: var(--sage-dark); font-weight: 600; }
+
+/* Products grid */
+.s2-products {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-content: start;
+}
+.s2-products::-webkit-scrollbar { display: none; }
+.prod-card {
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: var(--r);
+  padding: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all .18s;
+  position: relative;
+}
+.prod-card:hover, .prod-card.active { border-color: var(--sage-mid); background: var(--sage-pale); }
+.prod-emoji { font-size: 1.6rem; margin-bottom: 5px; display: block; }
+.prod-name { font-size: .7rem; font-weight: 600; color: var(--espresso); line-height: 1.2; margin-bottom: 3px; }
+.prod-price { font-family: var(--fh); font-size: .78rem; font-weight: 700; color: var(--sage-dark); }
+.prod-add {
+  position: absolute; top: 7px; right: 7px;
+  width: 20px; height: 20px;
+  background: var(--sage);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; color: #fff;
+  box-shadow: 0 1px 4px rgba(122,158,126,.3);
+}
+.prod-qty-badge {
+  position: absolute; top: 6px; right: 6px;
+  background: var(--terra);
+  color: #fff;
+  font-size: .55rem; font-weight: 700;
+  padding: 1px 5px; border-radius: 20px;
+  font-family: var(--fm);
+}
+
+/* Cobrar button */
+.cobrar-wrap { padding: 10px 16px 12px; }
+.cobrar {
+  width: 100%;
+  background: var(--espresso);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 13px;
+  font-family: var(--fh);
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background .18s;
+}
+.cobrar:hover { background: var(--mocha); }
+.cobrar .cobrar-total { color: var(--sage-light); }
+
+/* ══════════════════════════════════════
+   TELA 3 — MINI LOJA ONLINE
+══════════════════════════════════════ */
+.s3 { display: flex; flex-direction: column; height: 100%; padding-top: 28px; }
+
+.s3-header {
+  background: var(--espresso);
+  padding: 14px 16px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.s3-header::after {
+  content: '';
+  position: absolute;
+  bottom: -20px; right: -20px;
+  width: 80px; height: 80px;
+  background: rgba(122,158,126,.15);
+  border-radius: 50%;
+}
+.s3-store-name { font-family: var(--fh); font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 1px; }
+.s3-store-url { font-size: .6rem; color: rgba(255,255,255,.5); font-family: var(--fm); margin-bottom: 10px; }
+.s3-header-row { display: flex; align-items: center; gap: 10px; }
+.s3-logo { width: 38px; height: 38px; background: var(--sage); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+.s3-info { flex: 1; }
+.s3-cart-btn {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: .68rem;
+  color: #fff;
+  display: flex; align-items: center; gap: 5px;
+  cursor: pointer;
+}
+
+/* Search */
+.s3-search {
+  padding: 10px 16px 4px;
+  position: relative;
+}
+.s3-search input {
+  width: 100%;
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: 12px;
+  padding: 9px 14px 9px 34px;
+  font-size: .72rem;
+  color: var(--espresso);
+  font-family: var(--fb);
+  outline: none;
+}
+.s3-search .si { position: absolute; left: 27px; top: 19px; color: var(--taupe); font-size: .8rem; }
+
+/* Products */
+.s3-body { flex: 1; overflow-y: auto; padding: 8px 16px 4px; }
+.s3-body::-webkit-scrollbar { display: none; }
+.s3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.s3-card {
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all .18s;
+}
+.s3-card:hover { border-color: var(--sage-mid); transform: translateY(-1px); }
+.s3-img {
+  aspect-ratio: 1;
+  background: var(--cream);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem;
+  border-bottom: 1px solid var(--bone);
+}
+.s3-card-body { padding: 8px 10px 10px; }
+.s3-card-name { font-size: .7rem; font-weight: 600; color: var(--espresso); line-height: 1.3; margin-bottom: 2px; }
+.s3-card-cat { font-size: .58rem; color: var(--taupe); margin-bottom: 6px; }
+.s3-card-footer { display: flex; align-items: center; justify-content: space-between; }
+.s3-price { font-family: var(--fh); font-size: .78rem; font-weight: 700; color: var(--sage-dark); }
+.s3-add {
+  width: 22px; height: 22px;
+  background: var(--espresso);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; color: #fff;
+  cursor: pointer;
+}
+
+/* Checkout btn */
+.s3-checkout { padding: 8px 16px 12px; }
+.s3-checkout-btn {
+  width: 100%;
+  background: var(--sage);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 12px;
+  font-family: var(--fh);
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 4px 14px rgba(122,158,126,.3);
+}
+
+/* ══════════════════════════════════════
+   TELA 4 — LOGIN
+══════════════════════════════════════ */
+.s4 { display: flex; flex-direction: column; height: 100%; justify-content: center; padding: 28px 20px 20px; }
+
+.login-logo { text-align: center; margin-bottom: 24px; }
+.login-logo .ll { font-family: var(--fh); font-size: 2rem; font-weight: 800; color: var(--espresso); }
+.login-logo .ll span { color: var(--sage); }
+.login-logo p { font-size: .72rem; color: var(--taupe); margin-top: 4px; }
+
+.login-card {
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: var(--rxl);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+}
+.form-group { margin-bottom: 12px; }
+.form-label { display: block; font-size: .68rem; font-weight: 600; color: var(--espresso); margin-bottom: 5px; }
+.form-input-wrap { position: relative; }
+.form-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: .8rem; color: var(--taupe); }
+.form-input {
+  width: 100%;
+  background: var(--cream);
+  border: 1.5px solid var(--bone);
+  border-radius: 10px;
+  padding: 9px 12px 9px 30px;
+  font-size: .75rem;
+  color: var(--espresso);
+  font-family: var(--fb);
+  outline: none;
+  transition: border .18s;
+}
+.form-input:focus { border-color: var(--sage-mid); background: var(--offwhite); }
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: var(--espresso);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--fh);
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background .18s;
+}
+.btn-primary:hover { background: var(--mocha); }
+
+.divider { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--bone); }
+.divider span { font-size: .6rem; color: var(--taupe); }
+
+.btn-google {
+  width: 100%;
+  padding: 9px;
+  background: var(--offwhite);
+  border: 1.5px solid var(--bone);
+  border-radius: 10px;
+  font-size: .72rem;
+  color: var(--espresso);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--fb); font-weight: 500;
+  transition: background .18s;
+}
+.btn-google:hover { background: var(--sand); }
+
+.login-footer { text-align: center; margin-top: 14px; font-size: .62rem; color: var(--taupe); }
+.login-footer a { color: var(--sage-dark); font-weight: 600; }
+
+/* ── INTERACTIVITY ── */
+.prod-card, .s3-card, .act, .resumo-card {
+  animation: fadeUp .35s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+.prod-card:nth-child(1) { animation-delay: .05s; }
+.prod-card:nth-child(2) { animation-delay: .10s; }
+.prod-card:nth-child(3) { animation-delay: .15s; }
+.prod-card:nth-child(4) { animation-delay: .20s; }
+
+/* ── TAB SWITCHER ── */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  background: var(--offwhite);
+  border: 1px solid var(--bone);
+  border-radius: 20px;
+  padding: 4px;
+  box-shadow: var(--shadow);
+}
+.tab {
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: .72rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--taupe);
+  transition: all .18s;
+  white-space: nowrap;
+}
+.tab.active {
+  background: var(--espresso);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(44,36,22,.2);
+}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <h1>Bora<span>.</span>app</h1>
+  <p>Preview Mobile · Paleta Tendência 2026</p>
+</div>
+
+<!-- Palette strip -->
+<div class="palette">
+  <div class="swatch"><div class="swatch-color" style="background:#2C2416"></div><div class="swatch-label">Espresso</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#6B5744"></div><div class="swatch-label">Mocha</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#F5F0E8"></div><div class="swatch-label">Cream</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FEFCF8"></div><div class="swatch-label">Off-white</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#7A9E7E"></div><div class="swatch-label">Sage</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#5C7D60"></div><div class="swatch-label">Sage Deep</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#C4714A"></div><div class="swatch-label">Terra</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#9B8EC4"></div><div class="swatch-label">Lilac</div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#9B8B7A"></div><div class="swatch-label">Taupe</div></div>
+</div>
+
+<!-- Tab switcher -->
+<div class="tab-bar">
+  <div class="tab active" onclick="showTab(0,this)">📊 Dashboard</div>
+  <div class="tab" onclick="showTab(1,this)">🏷️ Vender (PDV)</div>
+  <div class="tab" onclick="showTab(2,this)">🌐 Loja Online</div>
+  <div class="tab" onclick="showTab(3,this)">🔑 Login</div>
+</div>
+
+<!-- Phones row -->
+<div class="screens-row">
+  <!-- PHONE 1 — DASHBOARD -->
+  <div id="phone-0" class="phone">
+    <div class="phone-notch"></div>
+    <div class="phone-inner">
+      <div class="s1">
+        <!-- Top -->
+        <div class="s1-top">
+          <div class="s1-greeting">
+            <div class="gday">☀ Bom dia</div>
+            <div class="gname">João Silva</div>
+          </div>
+          <div class="s1-avatar">JS</div>
+        </div>
+
+        <!-- Balance card -->
+        <div class="balance-card">
+          <div class="bc-label">Vendas do mês</div>
+          <div class="bc-value">R$ 8.340</div>
+          <div class="bc-change">+12,4% este mês</div>
+        </div>
+
+        <!-- Nav pills -->
+        <div class="nav-pills">
+          <div class="np active">Visão geral</div>
+          <div class="np">Pedidos</div>
+          <div class="np">Estoque</div>
+          <div class="np">Financeiro</div>
+        </div>
+
+        <!-- Resumo -->
+        <div class="section-title">Resumo de hoje</div>
+        <div class="resumo-grid">
+          <div class="resumo-card">
+            <div class="rc-icon">💵</div>
+            <div class="rc-label">Vendas</div>
+            <div class="rc-value sage">R$1.847</div>
+          </div>
+          <div class="resumo-card">
+            <div class="rc-icon">🛒</div>
+            <div class="rc-label">Pedidos</div>
+            <div class="rc-value">34</div>
+          </div>
+          <div class="resumo-card">
+            <div class="rc-icon">📦</div>
+            <div class="rc-label">Estoque baixo</div>
+            <div class="rc-value terra">7 itens</div>
+          </div>
+        </div>
+
+        <!-- Atividade -->
+        <div class="section-title" style="margin-top:8px">Atividade recente</div>
+        <div class="activity-list">
+          <div class="act">
+            <div class="act-ico-wrap" style="background:var(--sage-pale)">🛒</div>
+            <div class="act-info">
+              <div class="act-name">Mercado Central</div>
+              <div class="act-time">Hoje, 09:42</div>
+            </div>
+            <div class="act-amount neg">−R$ 87</div>
+          </div>
+          <div class="act">
+            <div class="act-ico-wrap" style="background:#EEF5EE">💰</div>
+            <div class="act-info">
+              <div class="act-name">Venda #1042</div>
+              <div class="act-time">Hoje, 09:15</div>
+            </div>
+            <div class="act-amount pos">+R$ 89,90</div>
+          </div>
+          <div class="act">
+            <div class="act-ico-wrap" style="background:var(--lilac-pale)">🛍️</div>
+            <div class="act-info">
+              <div class="act-name">Pedido online · Maria S.</div>
+              <div class="act-time">Ontem, 18:30</div>
+            </div>
+            <div class="act-amount pos">+R$ 234</div>
+          </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="bn-item active">
+            <div class="bn-icon" style="background:var(--espresso);border-radius:8px;padding:4px 8px;color:#fff;font-size:.9rem">🏠</div>
+            <div class="bn-label" style="color:var(--espresso);font-weight:600">Início</div>
+          </div>
+          <div class="bn-item"><div class="bn-icon">🔍</div><div class="bn-label">Buscar</div></div>
+          <div class="bn-item"><div class="bn-icon">＋</div><div class="bn-label">Novo</div></div>
+          <div class="bn-item"><div class="bn-icon">🎯</div><div class="bn-label">Metas</div></div>
+          <div class="bn-item"><div class="bn-icon">👤</div><div class="bn-label">Perfil</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHONE 2 — PDV -->
+  <div id="phone-1" class="phone" style="display:none">
+    <div class="phone-notch"></div>
+    <div class="phone-inner">
+      <div class="s2">
+        <div class="s2-header">
+          <div class="s2-title">PDV — Vender</div>
+          <div class="s2-cart-btn">
+            🛒 R$14,90
+            <div class="cart-num">1</div>
+          </div>
+        </div>
+
+        <div class="s2-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Buscar produto ou código...">
+        </div>
+
+        <div class="s2-cats">
+          <div class="s2c active">🏷️ Todos</div>
+          <div class="s2c">🍔 Lanches</div>
+          <div class="s2c">🥤 Bebidas</div>
+          <div class="s2c">👕 Roupas</div>
+          <div class="s2c">❤️ Favoritos</div>
+        </div>
+
+        <div class="s2-products">
+          <div class="prod-card active">
+            <div class="prod-qty-badge">1</div>
+            <span class="prod-emoji">🍔</span>
+            <div class="prod-name">X-Burguer Especial</div>
+            <div class="prod-price">R$14,90</div>
+          </div>
+          <div class="prod-card">
+            <div class="prod-add">+</div>
+            <span class="prod-emoji">🥤</span>
+            <div class="prod-name">Suco Natural 500ml</div>
+            <div class="prod-price">R$8,00</div>
+          </div>
+          <div class="prod-card">
+            <div class="prod-add">+</div>
+            <span class="prod-emoji">👕</span>
+            <div class="prod-name">Camiseta Básica P</div>
+            <div class="prod-price">R$29,90</div>
+          </div>
+          <div class="prod-card">
+            <div class="prod-add">+</div>
+            <span class="prod-emoji">🥫</span>
+            <div class="prod-name">Refrigerante 350ml</div>
+            <div class="prod-price">R$5,00</div>
+          </div>
+          <div class="prod-card">
+            <div class="prod-add">+</div>
+            <span class="prod-emoji">🍟</span>
+            <div class="prod-name">Batata Frita P</div>
+            <div class="prod-price">R$12,00</div>
+          </div>
+          <div class="prod-card">
+            <div class="prod-add">+</div>
+            <span class="prod-emoji">🧢</span>
+            <div class="prod-name">Boné Básico</div>
+            <div class="prod-price">R$24,90</div>
+          </div>
+        </div>
+
+        <div class="cobrar-wrap">
+          <button class="cobrar">
+            <span>Cobrar agora</span>
+            <span class="cobrar-total">R$14,90 →</span>
+          </button>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon">🏠</div><div class="bn-label">Início</div></div>
+          <div class="bn-item"><div class="bn-icon">📋</div><div class="bn-label">Pedidos</div></div>
+          <div class="bn-item active">
+            <div class="bn-icon" style="background:var(--espresso);border-radius:8px;padding:4px 8px;color:#fff;font-size:.9rem">🏷️</div>
+            <div class="bn-label" style="color:var(--espresso);font-weight:600">Vender</div>
+          </div>
+          <div class="bn-item"><div class="bn-icon">📦</div><div class="bn-label">Estoque</div></div>
+          <div class="bn-item"><div class="bn-icon">⚙️</div><div class="bn-label">Mais</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHONE 3 — LOJA ONLINE -->
+  <div id="phone-2" class="phone" style="display:none">
+    <div class="phone-notch"></div>
+    <div class="phone-inner">
+      <div class="s3">
+        <div class="s3-header">
+          <div class="s3-header-row">
+            <div class="s3-logo">🛍️</div>
+            <div class="s3-info">
+              <div class="s3-store-name">Loja do João</div>
+              <div class="s3-store-url">bora.app/loja-do-joao</div>
+            </div>
+            <div class="s3-cart-btn">🛒 <span>2</span></div>
+          </div>
+        </div>
+
+        <div class="s3-search">
+          <span class="si">🔍</span>
+          <input type="text" placeholder="Buscar produtos...">
+        </div>
+
+        <div class="s3-body">
+          <div class="s3-grid">
+            <div class="s3-card">
+              <div class="s3-img">🍔</div>
+              <div class="s3-card-body">
+                <div class="s3-card-name">X-Burguer Especial</div>
+                <div class="s3-card-cat">Lanches</div>
+                <div class="s3-card-footer">
+                  <div class="s3-price">R$14,90</div>
+                  <div class="s3-add">+</div>
+                </div>
+              </div>
+            </div>
+            <div class="s3-card">
+              <div class="s3-img">👕</div>
+              <div class="s3-card-body">
+                <div class="s3-card-name">Camiseta Básica P</div>
+                <div class="s3-card-cat">Roupas</div>
+                <div class="s3-card-footer">
+                  <div class="s3-price">R$29,90</div>
+                  <div class="s3-add">+</div>
+                </div>
+              </div>
+            </div>
+            <div class="s3-card">
+              <div class="s3-img">📱</div>
+              <div class="s3-card-body">
+                <div class="s3-card-name">Capinha iPhone 15</div>
+                <div class="s3-card-cat">Acessórios</div>
+                <div class="s3-card-footer">
+                  <div class="s3-price">R$15,00</div>
+                  <div class="s3-add">+</div>
+                </div>
+              </div>
+            </div>
+            <div class="s3-card">
+              <div class="s3-img">👟</div>
+              <div class="s3-card-body">
+                <div class="s3-card-name">Tênis Running</div>
+                <div class="s3-card-cat">Calçados</div>
+                <div class="s3-card-footer">
+                  <div class="s3-price">R$140,00</div>
+                  <div class="s3-add">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="s3-checkout">
+          <button class="s3-checkout-btn">
+            🛒 Ver carrinho · R$44,90
+          </button>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon">🏠</div><div class="bn-label">Início</div></div>
+          <div class="bn-item"><div class="bn-icon">🔍</div><div class="bn-label">Buscar</div></div>
+          <div class="bn-item active">
+            <div class="bn-icon" style="background:var(--espresso);border-radius:8px;padding:4px 8px;color:#fff;font-size:.9rem">🌐</div>
+            <div class="bn-label" style="color:var(--espresso);font-weight:600">Catálogo</div>
+          </div>
+          <div class="bn-item"><div class="bn-icon">❤️</div><div class="bn-label">Favoritos</div></div>
+          <div class="bn-item"><div class="bn-icon">👤</div><div class="bn-label">Perfil</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHONE 4 — LOGIN -->
+  <div id="phone-3" class="phone" style="display:none">
+    <div class="phone-notch"></div>
+    <div class="phone-inner">
+      <div class="s4">
+        <div class="login-logo">
+          <div class="ll">Bora<span>.</span>app</div>
+          <p>Gestão completa do seu negócio</p>
+        </div>
+        <div class="login-card">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="form-input-wrap">
+              <span class="form-icon">📧</span>
+              <input class="form-input" type="email" placeholder="seu@email.com" value="joao@exemplo.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="display:flex;justify-content:space-between">
+              Senha <a href="#" style="color:var(--sage-dark);font-size:.6rem;font-weight:400">Esqueci a senha</a>
+            </label>
+            <div class="form-input-wrap">
+              <span class="form-icon">🔒</span>
+              <input class="form-input" type="password" placeholder="••••••••" value="senha123">
+            </div>
+          </div>
+          <button class="btn-primary">Entrar</button>
+          <div class="divider"><span>ou continue com</span></div>
+          <button class="btn-google">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Google
+          </button>
+        </div>
+        <div class="login-footer">
+          Não tem conta? <a href="#">Criar conta grátis</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(idx, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  for(let i=0;i<4;i++) {
+    const p = document.getElementById('phone-'+i);
+    if(p) p.style.display = i===idx ? 'block' : 'none';
+  }
+}
+// click interactions no PDV
+document.querySelectorAll('.prod-card').forEach(c => {
+  c.addEventListener('click', function() {
+    this.classList.toggle('active');
+  });
+});
+// click nos s3-add
+document.querySelectorAll('.s3-add').forEach(b => {
+  b.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.textContent = this.textContent === '+' ? '✓' : '+';
+    this.style.background = this.textContent === '✓' ? 'var(--sage)' : 'var(--espresso)';
+  });
+});
+</script>
+</body>
+</html>

@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "NEXT_PUBLIC_APP_URL",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -10,9 +15,14 @@
       "cache": false,
       "persistent": true
     },
-    "lint": { "outputs": [] },
-    "typecheck": { "outputs": [] },
-    "db:push": { "cache": false },
-    "db:studio": { "cache": false, "persistent": true }
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
   }
 }
