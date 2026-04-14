@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle } from "lucide-react";
+import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, Wifi, Banknote, CreditCard, Building, FileText, Store, Globe, MessageCircle, Zap } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -30,8 +30,8 @@ const PAY_STATUS_LABELS: Record<string, string> = {
   paid: "Pago", partial: "Parcial", unpaid: "Fiado", void: "Anulado", refunded: "Reembolsado",
 };
 
-const PAY_ICONS: Record<string, string> = { pix:"⚡", cash:"💵", credit:"💳", debit:"🏦", account:"📋" };
-const CHANNEL_ICONS: Record<string, string> = { pdv:"🏪", online:"🌐", whatsapp:"💬" };
+const PAY_ICONS: Record<string, any> = { pix: Wifi, cash: Banknote, credit: CreditCard, debit: Building, account: FileText };
+const CHANNEL_ICONS: Record<string, any> = { pdv: Store, online: Globe, whatsapp: MessageCircle };
 
 const TABS = [
   { value:"all",    label:"Todos"    },
