@@ -119,7 +119,7 @@ export default function FinanceiroPage() {
               {session && (
                 <p className="text-xs text-muted-foreground">
                   Aberto às {new Date(session.openedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  {" · "}Troco inicial: {formatCurrency(Number(session.openingFloat))}
+                  {" · "}Troco inicial: {formatCurrency(Number(session.openingBalance))}
                 </p>
               )}
             </div>
@@ -139,7 +139,7 @@ export default function FinanceiroPage() {
                 Fechar Caixa
               </Button>
             ) : (
-              <Button size="sm" onClick={() => openCaixaMut.mutate({ openingFloat: Number(caixaFloat) || 0 })} disabled={openCaixaMut.isPending}>
+              <Button size="sm" onClick={() => openCaixaMut.mutate({ openingBalance: Number(caixaFloat) || 0 })} disabled={openCaixaMut.isPending}>
                 Abrir Caixa
               </Button>
             )}
