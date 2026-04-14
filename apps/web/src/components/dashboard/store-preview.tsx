@@ -25,7 +25,7 @@ export function StorePreview() {
             <div className="w-9 h-9 rounded-xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-lg flex-shrink-0">🛍️</div>
             <div>
               <p className="font-heading font-bold text-sm text-white">Loja do João</p>
-              <p className="text-xs text-orange-100">bora.app/loja-do-joao</p>
+              <p className="text-xs text-orange-100">lumipos.com/loja-do-joao</p>
             </div>
           </div>
           <div className="p-3 bg-muted/30">

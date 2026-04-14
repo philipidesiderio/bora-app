@@ -9,7 +9,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="font-heading text-4xl font-extrabold tracking-tight">
-            Bora<span className="text-primary">.</span>app
+            lumi<span className="text-primary">POS</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Crie sua conta gratuitamente

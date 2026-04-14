@@ -4,69 +4,116 @@
 
 @layer base {
   :root {
-    /* Paleta 2026 — Espresso, Cream, Sage, Terra, Lilac */
-    --background:          38 50% 96%;    /* cream claro */
-    --foreground:          20 32% 14%;    /* espresso */
-    --card:                38 60% 99%;
-    --card-foreground:     20 32% 14%;
-    --popover:             38 60% 99%;
-    --popover-foreground:  20 32% 14%;
+    /* ═════════════════════════════════════════════════════
+       PALETA 2026 — Warm Neutral + Sage + Mocha + Cloud Dancer
+       Tendência: Pantone 2025/2026, Envato Trends, IxDF
+    ═════════════════════════════════════════════════════ */
+    
+    /* Base */
+    --background:          38 53% 94%;    /* Cream #F5F0E8 */
+    --foreground:          20 32% 17%;    /* Espresso #2C2416 */
+    --card:                38 70% 99%;    /* Off-white #FEFCF8 */
+    --card-foreground:     20 32% 17%;
+    --popover:             38 70% 99%;
+    --popover-foreground:  20 32% 17%;
 
-    --primary:             22 42% 55%;    /* terra #C17F5A */
+    /* Primária — Sage Green (tendência wellness/fintech 2026) */
+    --primary:             120 18% 60%;   /* Sage #7A9E7E */
     --primary-foreground:  0  0%  100%;
+    --primary-hover:       120 17% 66%;   /* Sage-light #9BB89F */
+    --primary-active:      120 20% 40%;   /* Sage-dark #5C7D60 */
 
-    --secondary:           120 11% 88%;  /* sage claro */
-    --secondary-foreground:120 12% 28%;
+    --secondary:          120 22% 90%;   /* Sage-pale #E8F0E9 */
+    --secondary-foreground:120 20% 40%;
 
-    --muted:               38 25% 92%;
-    --muted-foreground:    20 15% 50%;
+    /* Muted */
+    --muted:               38 20% 88%;    /* Bone #EDE8DF */
+    --muted-foreground:    25 20% 50%;   /* Taupe #9B8B7A */
 
-    --accent:              38 35% 90%;
-    --accent-foreground:   20 32% 18%;
+    --accent:              38 20% 88%;    /* Sand #E2D9CC */
+    --accent-foreground:   20 32% 17%;
 
-    --destructive:         0 84% 60%;
+    /* Status */
+    --destructive:         0 64% 58%;     /* Error #B85450 */
     --destructive-foreground: 0 0% 100%;
+    --success:            120 23% 48%;   /* Success #5C8C65 */
+    --success-bg:         120 20% 93%;   /* Success-bg #E6F0E7 */
+    --warning:            38 55% 53%;    /* Warning #C49B3A */
+    --warning-bg:         38 60% 93%;    /* Warning-bg #F5EDD8 */
 
-    --border:              38 20% 86%;
-    --input:               38 20% 86%;
-    --ring:                22 42% 55%;
+    /* Borders */
+    --border:              38 18% 84%;   /* Bone #EDE8DF */
+    --input:              38 18% 84%;
+    --ring:               120 18% 60%;   /* Sage */
 
-    --radius:              0.75rem;
+    --radius:              1rem;
 
-    /* tokens de marca */
-    --espresso:   20 32% 18%;
-    --cream:      38 67% 90%;
-    --sage:       120 11% 62%;
-    --terra:      22 42% 55%;
-    --lilac:      277 23% 76%;
+    /* ═════════════════════════════════════════════════════
+       TOKENS DE MARCA — Cores Hexadecimais
+    ═════════════════════════════════════════════════════ */
+    /* Base */
+    --espresso:    #2C2416;
+    --mocha:       #6B5744;
+    --cream:       #F5F0E8;
+    --offwhite:    #FEFCF8;
+    --bone:        #EDE8DF;
+    --sand:        #E2D9CC;
+    --taupe:       #9B8B7A;
+    --dust:        #C4B8AB;
+
+    /* Primária — Sage */
+    --sage:        #7A9E7E;
+    --sage-light:  #9BB89F;
+    --sage-dark:   #5C7D60;
+    --sage-pale:   #E8F0E9;
+    --sage-mid:    #C5D9C7;
+
+    /* Acento — Terra/Coral */
+    --terra:       #C4714A;
+    --terra-pale:  #F5E8E0;
+    --terra-mid:   #E4C0AD;
+
+    /* Acento 2 — Lilac */
+    --lilac:       #9B8EC4;
+    --lilac-pale:  #EEEAF6;
+    --lilac-mid:   #CFC8E8;
   }
 
   .dark {
-    --background:          20 28% 8%;
-    --foreground:          38 40% 88%;
-    --card:                20 25% 11%;
-    --card-foreground:     38 40% 88%;
-    --popover:             20 25% 11%;
-    --popover-foreground:  38 40% 88%;
+    --background:          20 28% 10%;
+    --foreground:          38 35% 92%;
+    --card:                20 22% 14%;
+    --card-foreground:     38 35% 92%;
+    --popover:             20 22% 14%;
+    --popover-foreground:  38 35% 92%;
 
-    --primary:             22 42% 62%;
+    --primary:            120 18% 55%;
     --primary-foreground:  0  0%  100%;
+    --primary-hover:      120 18% 60%;
+    --primary-active:     120 20% 45%;
 
-    --secondary:           120 10% 18%;
-    --secondary-foreground:120 11% 75%;
+    --secondary:          120 15% 22%;
+    --secondary-foreground:120 18% 75%;
 
-    --muted:               20 20% 16%;
-    --muted-foreground:    38 15% 55%;
+    --muted:              20 18% 18%;
+    --muted-foreground:   38 15% 60%;
 
-    --accent:              20 20% 16%;
-    --accent-foreground:   38 40% 88%;
+    --accent:             20 18% 18%;
+    --accent-foreground:  38 35% 92%;
 
-    --destructive:         0 63% 55%;
+    --destructive:        0 60% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border:              20 20% 18%;
-    --input:               20 20% 18%;
-    --ring:                22 42% 62%;
+    --border:             20 18% 22%;
+    --input:              20 18% 22%;
+    --ring:               120 18% 55%;
+
+    /* Brand tokens dark */
+    --espresso:   #F5F0E8;
+    --mocha:      #C4B8AB;
+    --cream:      #2C2416;
+    --sage:       #9BB89F;
+    --terra:      #E4C0AD;
   }
 }
 

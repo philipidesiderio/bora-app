@@ -10,7 +10,7 @@ import type { User } from "@bora/db";
 const DEMO_USER: User = {
   id: "demo",
   name: "Demo",
-  email: "demo@bora.app",
+  email: "demo@lumipos.com",
   image: null,
   role: "owner",
   tenantId: null,

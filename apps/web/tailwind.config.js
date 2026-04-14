@@ -15,6 +15,8 @@ module.exports = {
         primary: {
           DEFAULT:    "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover:      "hsl(var(--primary-hover))",
+          active:     "hsl(var(--primary-active))",
         },
         secondary: {
           DEFAULT:    "hsl(var(--secondary))",
@@ -40,18 +42,48 @@ module.exports = {
           DEFAULT:    "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        /* ═════════════════════════════════════════════════════
+           BRAND COLORS — Paleta 2026
+        ═════════════════════════════════════════════════════ */
         brand: {
-          terra:    "#C17F5A",
-          sage:     "#8FAF8F",
-          espresso: "#3D2B1F",
-          cream:    "#F5ECD7",
-          lilac:    "#C3B1D3",
+          /* Base */
+          espresso:  "#2C2416",
+          mocha:     "#6B5744",
+          cream:     "#F5F0E8",
+          offwhite:  "#FEFCF8",
+          bone:      "#EDE8DF",
+          sand:      "#E2D9CC",
+          taupe:     "#9B8B7A",
+          dust:      "#C4B8AB",
+          /* Primária — Sage */
+          sage:      "#7A9E7E",
+          "sage-light":  "#9BB89F",
+          "sage-dark":   "#5C7D60",
+          "sage-pale":   "#E8F0E9",
+          "sage-mid":    "#C5D9C7",
+          /* Acento — Terra */
+          terra:     "#C4714A",
+          "terra-pale": "#F5E8E0",
+          "terra-mid":  "#E4C0AD",
+          /* Acento 2 — Lilac */
+          lilac:     "#9B8EC4",
+          "lilac-pale": "#EEEAF6",
+          "lilac-mid":  "#CFC8E8",
+        },
+        /* Status colors */
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          bg:      "hsl(var(--success-bg))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          bg:      "hsl(var(--warning-bg))",
         },
       },
       fontFamily: {
-        sans:    ["var(--font-sans)", "Nunito", "sans-serif"],
-        heading: ["var(--font-heading)", "Bricolage Grotesque", "sans-serif"],
-        mono:    ["var(--font-mono)", "JetBrains Mono", "monospace"],
+        sans:    ["var(--font-sans)", "DM Sans", "sans-serif"],
+        heading: ["var(--font-heading)", "Syne", "sans-serif"],
+        mono:    ["var(--font-mono)", "DM Mono", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -47,7 +47,7 @@ export function Sidebar({ user }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center text-sm">🛍️</div>
           <span className="font-heading text-xl font-extrabold">
-            Bora<span className="text-primary">.</span>app
+            lumi<span className="text-primary">POS</span>
           </span>
         </div>
         <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"

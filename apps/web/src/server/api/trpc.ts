@@ -51,7 +51,7 @@ export const createTRPCContext = async (opts: CreateContextOptions) => {
       tenant = demoTenant;
       if (!session) {
         session = {
-          user: { id: DEMO_USER_ID, name: "Demo", email: "demo@bora.app" },
+          user: { id: DEMO_USER_ID, name: "Demo", email: "demo@lumipos.com" },
         };
       }
     }

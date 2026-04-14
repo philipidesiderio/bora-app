@@ -57,7 +57,7 @@ export function RegisterForm() {
         body: JSON.stringify({ storeName: data.storeName, slug }),
       });
 
-      toast.success("Conta criada! Bem-vindo ao Bora.app 🎉");
+      toast.success("Conta criada! Bem-vindo ao lumiPOS 🎉");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {

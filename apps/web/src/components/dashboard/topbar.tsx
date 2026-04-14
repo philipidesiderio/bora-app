@@ -24,14 +24,14 @@ interface TopbarProps { user: User }
 
 export function Topbar({ user }: TopbarProps) {
   const pathname = usePathname();
-  const title = PAGE_TITLES[pathname] ?? "Bora.app";
+  const title = PAGE_TITLES[pathname] ?? "lumiPOS";
 
   return (
     <header className="sticky top-0 z-40 h-14 md:h-16 bg-card/90 backdrop-blur border-b border-border flex items-center px-4 md:px-6 gap-3">
       {/* Mobile: logo + título */}
       <div className="flex items-center gap-2 md:hidden">
         <span className="font-heading text-lg font-extrabold">
-          Bora<span className="text-primary">.</span>
+          lumi<span className="text-primary">POS</span>
         </span>
         <span className="text-muted-foreground/40 text-lg">·</span>
         <span className="font-heading font-semibold text-base">{title}</span>
