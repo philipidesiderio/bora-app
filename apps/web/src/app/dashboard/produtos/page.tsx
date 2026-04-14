@@ -113,7 +113,7 @@ export default function ProdutosPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{p.name}</p>
-                  <Badge variant="outline" className="mt-1 text-[10px]">{typeLabels[p.type]}</Badge>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{typeLabels[p.type as keyof typeof typeLabels]}</Badge>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">

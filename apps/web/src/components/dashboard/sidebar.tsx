@@ -4,7 +4,15 @@ import { usePathname } from "next/navigation";
 import { cn, getInitials, PLAN_LABELS } from "@/lib/utils";
 import type { User } from "@bora/db";
 
-const NAV = [
+type NavItem = {
+  href: string;
+  icon: string;
+  label: string;
+  badge?: string;
+  badgeColor?: string;
+};
+
+const NAV: { label: string; items: NavItem[] }[] = [
   { label: "Vendas",    items: [
     { href: "/dashboard",           icon: "📊", label: "Dashboard" },
     { href: "/dashboard/vender",    icon: "🏷️", label: "PDV / Vender" },

@@ -116,7 +116,7 @@ export function PDVScreen() {
     if (!couponCode.trim()) return;
     const res = await validateCoupon.refetch();
     setCouponResult(res.data);
-    if (res.data?.valid) toast.success(`Cupom aplicado! -${formatCurrency(res.data.discountAmount)}`);
+    if (res.data?.valid) toast.success(`Cupom aplicado! -${formatCurrency(res.data.discountAmount ?? 0)}`);
     else toast.error(res.data?.error ?? "Cupom inválido");
   };
 

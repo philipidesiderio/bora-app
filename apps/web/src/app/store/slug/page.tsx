@@ -3,6 +3,8 @@ import { db, tenants, products } from "@bora/db";
 import { eq, and } from "drizzle-orm";
 import { StoreFront } from "@/components/store/storefront";
 
+export const dynamic = "force-dynamic";
+
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props) {
