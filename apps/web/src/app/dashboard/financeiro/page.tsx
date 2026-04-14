@@ -11,8 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 type TxForm = { type: "income" | "expense"; category: string; description: string; amount: string; dueDate: string };
 const emptyForm: TxForm = { type: "income", category: "other", description: "", amount: "", dueDate: "" };
@@ -164,51 +163,30 @@ export default function FinanceiroPage() {
               <p className="text-sm">Nenhuma transação encontrada</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-border overflow-hidden bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map(tx => (
-                    <TableRow key={tx.id}>
-                      <TableCell className="font-medium">{tx.description}</TableCell>
-                      <TableCell><Badge variant="outline">{CAT_LABELS[tx.category] ?? tx.category}</Badge></TableCell>
-                      <TableCell>
-                        <span className={`text-sm font-medium ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
-                          {tx.type === "income" ? "Receita" : "Despesa"}
-                        </span>
-                      </TableCell>
-                      <TableCell className={`font-bold ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
-                        {tx.type === "expense" ? "−" : "+"}{formatCurrency(Number(tx.amount))}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {tx.dueDate ? formatDate(tx.dueDate) : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANTS[tx.status] ?? "outline"}>
-                          {STATUS_LABELS[tx.status] ?? tx.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {tx.status === "pending" && (
-                          <button onClick={() => markPaidMut.mutate({ id: tx.id })} className="p-1.5 rounded-lg hover:bg-emerald-50 text-muted-foreground hover:text-emerald-600 transition-colors" title="Marcar como pago">
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="grid grid-cols-1 gap-3">
+              {transactions.map(tx => (
+                <Card key={tx.id} className="p-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{tx.description}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <Badge variant="outline" className="text-xs">{CAT_LABELS[tx.category] ?? tx.category}</Badge>
+                      <Badge variant={STATUS_VARIANTS[tx.status] ?? "outline"} className="text-xs">
+                        {STATUS_LABELS[tx.status] ?? tx.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-3">
+                    <p className={`font-bold ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
+                      {tx.type === "expense" ? "−" : "+"}{formatCurrency(Number(tx.amount))}
+                    </p>
+                    {tx.status === "pending" && (
+                      <button onClick={() => markPaidMut.mutate({ id: tx.id })} className="text-xs text-emerald-600 hover:underline">
+                        Pagar
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>

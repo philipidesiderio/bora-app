@@ -82,42 +82,26 @@ export default function EstoquePage() {
 
       <div className="space-y-3">
         <h2 className="font-heading font-bold text-lg">Todos os Produtos</h2>
-        <div className="rounded-2xl border border-border overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produto</TableHead>
-                <TableHead>Estoque</TableHead>
-                <TableHead>Nível</TableHead>
-                <TableHead>Mínimo</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allProducts.map(p => {
-                if (!p.trackStock) return null;
-                const stock = p.stock ?? 0;
-                const min = p.minStock ?? 5;
-                const pct = min > 0 ? Math.min(100, (stock / (min * 3)) * 100) : 100;
-                const low = stock <= min;
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={low ? "destructive" : "success"}>{stock} un</Badge>
-                    </TableCell>
-                    <TableCell className="w-32">
-                      <Progress value={pct} max={100} className={`h-1.5 ${low ? "[&>div]:bg-red-500" : ""}`} />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{min} un</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => openAdjust(p)}>Ajustar</Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {allProducts.map(p => {
+            if (!p.trackStock) return null;
+            const stock = p.stock ?? 0;
+            const min = p.minStock ?? 5;
+            const pct = min > 0 ? Math.min(100, (stock / (min * 3)) * 100) : 100;
+            const low = stock <= min;
+            return (
+              <Card key={p.id} className="p-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{p.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant={low ? "destructive" : "success"}>{stock} un</Badge>
+                    <span className="text-xs text-muted-foreground">Mín: {min}</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => openAdjust(p)}>Ajustar</Button>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
