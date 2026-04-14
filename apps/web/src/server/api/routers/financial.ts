@@ -44,9 +44,11 @@ export const financialRouter = createTRPCRouter({
       notes:       z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const transactionId = crypto.randomUUID();
       const { data, error } = await ctx.supa
         .from("transactions")
         .insert({
+          id:          transactionId,
           tenant_id:   ctx.tenant.id,
           type:        input.type,
           category:    input.category,
@@ -131,9 +133,11 @@ export const financialRouter = createTRPCRouter({
       if (checkError) throw new Error(checkError.message);
       if (existing) throw new Error("Já existe um caixa aberto");
 
+      const sessionId = crypto.randomUUID();
       const { data, error } = await ctx.supa
         .from("cash_sessions")
         .insert({
+          id:              sessionId,
           tenant_id:       ctx.tenant.id,
           opened_by:       ctx.session.user.id,
           status:          "open",

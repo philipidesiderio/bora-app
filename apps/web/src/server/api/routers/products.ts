@@ -50,10 +50,12 @@ export const productsRouter = createTRPCRouter({
   create: tenantProcedure
     .input(productSchema)
     .mutation(async ({ ctx, input }) => {
+      const productId = crypto.randomUUID();
       const { data, error } = await ctx.supa
         .from("products")
         .insert({
-          tenant_id:   ctx.tenant.id,
+          id:           productId,
+          tenant_id:    ctx.tenant.id,
           name:        input.name,
           description: input.description ?? null,
           price:       input.price,

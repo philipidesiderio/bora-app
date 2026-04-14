@@ -474,10 +474,14 @@ async function _createOrder(ctx: any, opts: {
   const tendered  = paymentsList.find(p => p.method === "cash")?.amount ?? null;
   const change    = tendered && tendered > total ? tendered - total : null;
 
+  // Generate ID (compatible with schema's cuid2)
+  const orderId = crypto.randomUUID();
+
   // Create order
   const { data: order, error: orderErr } = await ctx.supa
     .from("orders")
     .insert({
+      id:             orderId,
       tenant_id:      ctx.tenant.id,
       customer_id:    opts.customerId ?? null,
       number,

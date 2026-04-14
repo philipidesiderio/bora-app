@@ -12,15 +12,18 @@ const MAIN_TABS = [
 ];
 
 const MORE_ITEMS = [
-  { href: "/dashboard/estoque",      emoji: "📦", label: "Estoque"      },
-  { href: "/dashboard/financeiro",   emoji: "💰", label: "Financeiro"   },
-  { href: "/dashboard/caixa",        emoji: "🏧", label: "Caixa"        },
-  { href: "/dashboard/relatorios",   emoji: "📈", label: "Relatórios"   },
-  { href: "/dashboard/produtos",     emoji: "🏷️", label: "Produtos"     },
-  { href: "/dashboard/fornecedores", emoji: "🚚", label: "Fornecedores" },
-  { href: "/dashboard/cupons",       emoji: "🎟️", label: "Cupons"       },
-  { href: "/dashboard/historico",    emoji: "📜", label: "Histórico"    },
-  { href: "/dashboard/ajustes",      emoji: "⚙️", label: "Configurações"},
+  { href: "/dashboard/estoque",        emoji: "📦", label: "Estoque"      },
+  { href: "/dashboard/financeiro",     emoji: "💰", label: "Financeiro"   },
+  { href: "/dashboard/caixa",          emoji: "🏧", label: "Caixa"        },
+  { href: "/dashboard/relatorios",     emoji: "📈", label: "Relatórios"   },
+  { href: "/dashboard/produtos",       emoji: "🏷️", label: "Produtos"     },
+  { href: "/dashboard/fornecedores",  emoji: "🚚", label: "Fornecedores" },
+  { href: "/dashboard/cupons",        emoji: "🎟️", label: "Cupons"        },
+  { href: "/dashboard/historico",     emoji: "📜", label: "Histórico"    },
+  { href: "/dashboard/fiscal",        emoji: "🧾", label: "Fiscal"       },
+  { href: "/dashboard/catalogo",       emoji: "🌐", label: "Catálogo"     },
+  { href: "/dashboard/ajustes/planos",emoji: "💎", label: "Planos"        },
+  { href: "/dashboard/ajustes",       emoji: "⚙️", label: "Configurações"},
 ];
 
 export function BottomNav() {
