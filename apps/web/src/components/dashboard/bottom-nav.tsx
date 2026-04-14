@@ -2,28 +2,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, ShoppingCart, ClipboardList, Users, MoreHorizontal } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  ClipboardList, 
+  Users, 
+  MoreHorizontal,
+  Package, 
+  Wallet, 
+  Building2, 
+  BarChart3, 
+  Tag, 
+  Truck, 
+  Ticket, 
+  History, 
+  FileText, 
+  Globe, 
+  Gem,
+  Settings
+} from "lucide-react";
 import { useState } from "react";
 
 const MAIN_TABS = [
-  { href: "/dashboard",          icon: LayoutDashboard, label: "Início"   },
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Inicio"   },
   { href: "/dashboard/pedidos",  icon: ClipboardList,   label: "Pedidos"  },
   { href: "/dashboard/clientes", icon: Users,           label: "Clientes" },
 ];
 
 const MORE_ITEMS = [
-  { href: "/dashboard/estoque",        emoji: "📦", label: "Estoque"      },
-  { href: "/dashboard/financeiro",     emoji: "💰", label: "Financeiro"   },
-  { href: "/dashboard/caixa",          emoji: "🏧", label: "Caixa"        },
-  { href: "/dashboard/relatorios",     emoji: "📈", label: "Relatórios"   },
-  { href: "/dashboard/produtos",       emoji: "🏷️", label: "Produtos"     },
-  { href: "/dashboard/fornecedores",  emoji: "🚚", label: "Fornecedores" },
-  { href: "/dashboard/cupons",        emoji: "🎟️", label: "Cupons"        },
-  { href: "/dashboard/historico",     emoji: "📜", label: "Histórico"    },
-  { href: "/dashboard/fiscal",        emoji: "🧾", label: "Fiscal"       },
-  { href: "/dashboard/catalogo",       emoji: "🌐", label: "Catálogo"     },
-  { href: "/dashboard/ajustes/planos",emoji: "💎", label: "Planos"        },
-  { href: "/dashboard/ajustes",       emoji: "⚙️", label: "Configurações"},
+  { href: "/dashboard/estoque",        icon: Package,    label: "Estoque"      },
+  { href: "/dashboard/financeiro",     icon: Wallet,    label: "Financeiro"   },
+  { href: "/dashboard/caixa",         icon: Building2,  label: "Caixa"        },
+  { href: "/dashboard/relatorios",    icon: BarChart3,  label: "Relatorios"   },
+  { href: "/dashboard/produtos",      icon: Tag,        label: "Produtos"     },
+  { href: "/dashboard/fornecedores",  icon: Truck,     label: "Fornecedores" },
+  { href: "/dashboard/cupons",        icon: Ticket,    label: "Cupons"       },
+  { href: "/dashboard/historico",    icon: History,    label: "Historico"    },
+  { href: "/dashboard/fiscal",       icon: FileText,   label: "Fiscal"       },
+  { href: "/dashboard/catalogo",    icon: Globe,      label: "Catalogo"     },
+  { href: "/dashboard/ajustes/planos", icon: Gem,       label: "Planos"       },
+  { href: "/dashboard/ajustes",     icon: Settings,   label: "Configuracoes"},
 ];
 
 export function BottomNav() {
@@ -49,22 +67,25 @@ export function BottomNav() {
           Menu completo
         </p>
         <div className="grid grid-cols-3 gap-2">
-          {MORE_ITEMS.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMoreOpen(false)}
-              className={cn(
-                "flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center transition-all active:scale-95",
-                pathname === item.href
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted/60 text-foreground hover:bg-muted"
-              )}
-            >
-              <span className="text-2xl">{item.emoji}</span>
-              <span className="text-xs font-medium leading-tight">{item.label}</span>
-            </Link>
-          ))}
+          {MORE_ITEMS.map(item => {
+            const IconComponent = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMoreOpen(false)}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center transition-all active:scale-95",
+                  pathname === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted/60 text-foreground hover:bg-muted"
+                )}
+              >
+                <IconComponent className="w-5 h-5" />
+                <span className="text-xs font-medium leading-tight">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -88,7 +109,7 @@ export function BottomNav() {
               );
             })}
 
-            {/* FAB central — PDV */}
+            {/* FAB central - PDV */}
             <Link href="/dashboard/vender"
               className="flex flex-col items-center -mt-6 active:scale-90 transition-all">
               <div className="w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center border-4 border-background">

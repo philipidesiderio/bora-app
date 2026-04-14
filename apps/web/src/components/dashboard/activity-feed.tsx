@@ -1,34 +1,34 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+import { CheckCircle, ShoppingBag, AlertTriangle, User, RotateCcw } from "lucide-react";
 
-const ACTIVITY = [
-  { icon: "✅", bg: "bg-emerald-500/10", msg: <>Venda <strong>#1042</strong> concluída — R$89,90 via PIX</>,          time: "5 min atrás"  },
-  { icon: "🛍️", bg: "bg-blue-500/10",    msg: <>Novo pedido online de <strong>Maria Santos</strong></>,               time: "14 min atrás" },
-  { icon: "⚠️", bg: "bg-yellow-500/10",  msg: <>Estoque baixo: <strong>Tênis Running</strong> (2 un.)</>,            time: "32 min atrás" },
-  { icon: "👤", bg: "bg-purple-500/10",  msg: <>Novo cliente: <strong>Pedro M.</strong></>,                           time: "1h atrás"     },
-  { icon: "↩️", bg: "bg-red-500/10",     msg: <>Devolução registrada no pedido <strong>#1039</strong></>,             time: "2h atrás"     },
+const ACTIVITY_ITEMS = [
+  { icon: CheckCircle, bg: "bg-emerald-500/10", color: "text-emerald-600", msg: <>Venda <strong>#1042</strong> conclua - R$89,90 via PIX</>, time: "5 min"  },
+  { icon: ShoppingBag, bg: "bg-blue-500/10",    color: "text-blue-600",   msg: <>Novo pedido online de <strong>Maria Santos</strong></>,            time: "14 min" },
+  { icon: AlertTriangle, bg: "bg-yellow-500/10",  color: "text-yellow-600", msg: <>Estoque baixo: <strong>Tenis Running</strong> (2 un.)</>,          time: "32 min" },
+  { icon: User, bg: "bg-purple-500/10",  color: "text-purple-600",    msg: <>Novo cliente: <strong>Pedro M.</strong></>,                           time: "1h"     },
+  { icon: RotateCcw, bg: "bg-red-500/10",     color: "text-red-600",     msg: <>Devolucao registrada no pedido <strong>#1039</strong></>,          time: "2h"     },
 ];
 
 export function ActivityFeed() {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-heading text-base">Atividade recente</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="space-y-0">
-          {ACTIVITY.map((a, i) => (
-            <div key={i} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-0.5 ${a.bg}`}>
-                {a.icon}
+    <div className="bg-card rounded-xl border p-4">
+      <h2 className="text-sm font-semibold mb-4">Atividade Recente</h2>
+      <div className="space-y-3">
+        {ACTIVITY_ITEMS.map((item, i) => {
+          const IconComponent = item.icon;
+          return (
+            <div key={i} className="flex items-start gap-3">
+              <div className={`w-8 h-8 rounded-full ${item.bg} flex items-center justify-center flex-shrink-0`}>
+                <IconComponent className={`w-4 h-4 ${item.color}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm leading-snug">{a.msg}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{a.time}</p>
+                <p className="text-sm text-muted-foreground">{item.msg}</p>
+                <span className="text-xs text-muted-foreground/60">{item.time} atras</span>
               </div>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
