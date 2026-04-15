@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, Wifi, Banknote, CreditCard, Building, FileText, Store, Globe, MessageCircle, Zap } from "lucide-react";
+import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -30,8 +30,8 @@ const PAY_STATUS_LABELS: Record<string, string> = {
   paid: "Pago", partial: "Parcial", unpaid: "Fiado", void: "Anulado", refunded: "Reembolsado",
 };
 
-const PAY_ICONS: Record<string, any> = { pix: Wifi, cash: Banknote, credit: CreditCard, debit: Building, account: FileText };
-const CHANNEL_ICONS: Record<string, any> = { pdv: Store, online: Globe, whatsapp: MessageCircle };
+const PAY_LABELS: Record<string, string> = { pix: "PIX", cash: "Dinheiro", credit: "Crédito", debit: "Débito", account: "Em aberto", voucher: "Voucher" };
+const CHANNEL_LABELS: Record<string, string> = { pdv: "PDV", online: "Online", whatsapp: "WhatsApp" };
 
 const TABS = [
   { value:"all",    label:"Todos"    },
@@ -118,15 +118,15 @@ export default function PedidosPage() {
                 {/* Main row */}
                 <div className="p-4 cursor-pointer" onClick={() => setOpenOrder(isOpen ? null : o.id)}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-base">#{o.number}</span>
-                      <span className="text-muted-foreground">{CHANNEL_ICONS[o.channel] ?? "🏪"}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono font-bold text-base shrink-0">#{o.number}</span>
+                      <span className="text-xs text-muted-foreground truncate">{CHANNEL_LABELS[o.channel] ?? "PDV"}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", PAY_STATUS_COLORS[payStatus] ?? "bg-muted text-foreground")}>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap", PAY_STATUS_COLORS[payStatus] ?? "bg-muted text-foreground")}>
                         {PAY_STATUS_LABELS[payStatus] ?? payStatus}
                       </span>
-                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", STATUS_COLORS[o.status] ?? "bg-muted text-foreground border-border")}>
+                      <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap", STATUS_COLORS[o.status] ?? "bg-muted text-foreground border-border")}>
                         {o.status}
                       </span>
                     </div>
@@ -137,7 +137,7 @@ export default function PedidosPage() {
                   </p>
                   <div className="flex items-center justify-between border-t border-border/60 pt-2">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{PAY_ICONS[o.payment_method] ?? "💳"}</span>
+                      <span>{PAY_LABELS[o.payment_method] ?? o.payment_method ?? "—"}</span>
                       <Clock className="h-3 w-3" />
                       <span>{formatDate(o.created_at)}</span>
                     </div>
@@ -164,7 +164,7 @@ export default function PedidosPage() {
                         <p className="text-xs text-muted-foreground font-semibold">Pagamentos</p>
                         {(o.payments as any[]).map((p: any) => (
                           <div key={p.id} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{PAY_ICONS[p.method]} {p.method}</span>
+                            <span className="text-muted-foreground">{PAY_LABELS[p.method] ?? p.method}</span>
                             <span className="font-mono">{formatCurrency(Number(p.amount))}</span>
                           </div>
                         ))}
