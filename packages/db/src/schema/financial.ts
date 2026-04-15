@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, numeric, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, pgEnum } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { tenants } from "./tenants";
 
@@ -22,14 +22,16 @@ export const transactions = pgTable("transactions", {
   updatedAt:   timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const cashSessionStatusEnum = pgEnum("cash_session_status", ["open", "closed"]);
+
 export const cashSessions = pgTable("cash_sessions", {
   id:            text("id").primaryKey().$defaultFn(() => createId()),
   tenantId:      text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   openedBy:      text("opened_by").notNull(),
+  status:        cashSessionStatusEnum("status").default("open").notNull(),
   openingBalance: numeric("opening_balance", { precision: 10, scale: 2 }).default("0"),
   closingBalance: numeric("closing_balance", { precision: 10, scale: 2 }),
-  totalSales:    numeric("total_sales",    { precision: 10, scale: 2 }).default("0"),
-  isOpen:        boolean("is_open").default(true).notNull(),
+  notes:          text("notes"),
   openedAt:      timestamp("opened_at").defaultNow().notNull(),
   closedAt:      timestamp("closed_at"),
 });

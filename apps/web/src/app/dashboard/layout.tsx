@@ -38,11 +38,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch {}
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background overflow-x-hidden">
       <Sidebar user={user} />
       <div className="flex flex-1 flex-col md:ml-16">
         <Topbar user={user} />
-        <main className="flex-1 p-4 md:p-6 overflow-auto pb-24 md:pb-6">
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden overflow-y-auto pb-24 md:pb-6 min-w-0">
           {children}
         </main>
       </div>

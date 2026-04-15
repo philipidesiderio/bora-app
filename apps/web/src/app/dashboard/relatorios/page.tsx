@@ -39,14 +39,14 @@ export default function RelatoriosPage() {
   const { data: inventory } = api.reports.inventoryValuation.useQuery();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 pb-28 md:pb-6">
       <div>
         <h1 className="font-heading font-bold text-2xl">Relatórios</h1>
         <p className="text-sm text-muted-foreground">Análise do seu negócio</p>
       </div>
 
       {/* Period selector */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto overflow-y-hidden no-scrollbar -mx-4 px-4">
         {PERIODS.map(p => (
           <button key={p.value} onClick={() => setPeriod(p.value)}
             className={cn(
@@ -80,16 +80,16 @@ export default function RelatoriosPage() {
       )}
 
       {/* Tab navigation */}
-      <div className="flex gap-1 p-1 bg-muted rounded-xl w-full overflow-x-auto no-scrollbar">
+      <div className="grid grid-cols-4 gap-1 p-1 bg-muted rounded-xl w-full">
         {[
           { key: "sales",    label: "Vendas"    },
-          { key: "payments", label: "Pagamentos"},
+          { key: "payments", label: "Pagtos"    },
           { key: "products", label: "Produtos"  },
           { key: "stock",    label: "Estoque"   },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
             className={cn(
-              "flex-1 min-w-fit px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap",
+              "px-2 py-2 rounded-lg text-xs font-semibold transition-all text-center",
               tab === t.key ? "bg-card shadow text-foreground" : "text-muted-foreground"
             )}>
             {t.label}

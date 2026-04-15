@@ -1,0 +1,577 @@
+"use client";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  PackageCheck, Search, Check, X, Pencil, Mic, Paperclip, Bell,
+  CreditCard, Banknote, Wifi, Receipt, Plus, ChevronDown, ChevronUp,
+  AlertTriangle, Wrench, User
+} from "lucide-react";
+import { api } from "@/components/providers/trpc-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatCurrency, cn } from "@/lib/utils";
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const PAYMENT_METHODS = [
+  { value: "pix",     label: "PIX",       icon: Wifi,       color: "bg-emerald-50 border-emerald-400 text-emerald-700" },
+  { value: "cash",    label: "Dinheiro",  icon: Banknote,   color: "bg-blue-50 border-blue-400 text-blue-700" },
+  { value: "credit",  label: "Crédito",   icon: CreditCard, color: "bg-purple-50 border-purple-400 text-purple-700" },
+  { value: "debit",   label: "Débito",    icon: CreditCard, color: "bg-amber-50 border-amber-400 text-amber-700" },
+  { value: "account", label: "Em aberto", icon: Receipt,    color: "bg-rose-50 border-rose-400 text-rose-700" },
+];
+
+interface PaymentEntry {
+  method: string;
+  amount: string;
+  installments: number;
+}
+
+function parseMoney(v: string) {
+  return Math.max(0, parseFloat(v.replace(",", ".")) || 0);
+}
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export default function RetiradasPage() {
+  const [search, setSearch] = useState("");
+
+  // Payment modal
+  const [paymentOrder, setPaymentOrder] = useState<any | null>(null);
+  const [payments, setPayments]         = useState<PaymentEntry[]>([{ method: "pix", amount: "", installments: 1 }]);
+
+  // Cancel modal
+  const [cancelOrder, setCancelOrder]   = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  // Edit modal
+  const [editOrder, setEditOrder]       = useState<any | null>(null);
+  const [editReason, setEditReason]     = useState("");
+  const [editObs, setEditObs]           = useState("");
+
+  // Personalizar modal
+  const [customOrder, setCustomOrder]   = useState<any | null>(null);
+  const [customObs, setCustomObs]       = useState("");
+
+  // Expanded rows
+  const [expanded, setExpanded]         = useState<string | null>(null);
+
+  const utils = api.useUtils();
+
+  const { data: orders = [], isLoading } = api.orders.list.useQuery({
+    limit: 100,
+    deliveryType: "later",
+  } as any);
+
+  const filtered = orders.filter((o: any) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      String(o.number).includes(s) ||
+      (o.customer?.name ?? "").toLowerCase().includes(s)
+    );
+  });
+
+  // Mutations
+  const markDeliveredMut = api.orders.markDelivered.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pedido marcado como entregue!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const cancelOrderMut = api.orders.cancel.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pedido cancelado."); setCancelOrder(null); setCancelReason(""); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const editOrderMut = api.orders.update.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pedido editado!"); setEditOrder(null); setEditReason(""); setEditObs(""); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const customizeOrderMut = api.orders.addNote.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Observação salva!"); setCustomOrder(null); setCustomObs(""); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const payOrderMut = api.orders.pay.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pagamento registrado!"); setPaymentOrder(null); setPayments([{ method: "pix", amount: "", installments: 1 }]); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Payment helpers
+  const addPaymentMethod = () => {
+    const used = payments.map(p => p.method);
+    const next = PAYMENT_METHODS.find(m => !used.includes(m.value));
+    if (!next) return;
+    setPayments(prev => [...prev, { method: next.value, amount: "", installments: 1 }]);
+  };
+
+  const removePaymentMethod = (idx: number) => {
+    if (payments.length === 1) return;
+    setPayments(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updatePayment = (idx: number, field: keyof PaymentEntry, value: any) =>
+    setPayments(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+
+  const paidSoFar = payments.reduce((s, p) => s + parseMoney(p.amount), 0);
+  const orderTotal = Number(paymentOrder?.total ?? 0);
+  const remaining  = Math.max(0, orderTotal - paidSoFar);
+
+  function confirmPayment() {
+    if (!paymentOrder) return;
+    payOrderMut.mutate({
+      orderId: paymentOrder.id,
+      payments: payments.map(p => ({
+        method: p.method,
+        amount: parseMoney(p.amount) || (payments.length === 1 ? orderTotal : remaining),
+        installments: p.method === "credit" ? p.installments : undefined,
+      })),
+    } as any);
+  }
+
+  const isPaid = (o: any) => ["paid", "partial"].includes(o.paymentStatus ?? o.payment_status ?? "");
+
+  return (
+    <div className="space-y-4 pb-28 md:pb-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-heading text-2xl font-bold flex items-center gap-2">
+          <PackageCheck className="w-6 h-6" /> Retiradas
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Pedidos aguardando retirada pelo cliente
+        </p>
+      </div>
+
+      {/* Busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nº ou cliente..."
+          className="pl-9"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* Lista */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <PackageCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Nenhuma retirada pendente</p>
+          <p className="text-sm mt-1 opacity-70">Os pedidos para retirada aparecerão aqui</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((o: any) => {
+            const payStatus = o.paymentStatus ?? o.payment_status ?? "unpaid";
+            const paid      = isPaid(o);
+            const isExpanded = expanded === o.id;
+            const isEdited  = o.editedAt || o.edited_at;
+
+            return (
+              <div
+                key={o.id}
+                className={cn(
+                  "bg-card border rounded-2xl overflow-hidden",
+                  isEdited ? "border-amber-300" : "border-border"
+                )}
+              >
+                {/* Edited alert */}
+                {isEdited && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200">
+                    <Bell className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-xs font-semibold text-amber-700">Pedido editado — verifique as alterações</span>
+                  </div>
+                )}
+
+                {/* Main info */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold">#{o.number}</span>
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                        payStatus === "paid"    ? "bg-emerald-100 text-emerald-700" :
+                        payStatus === "partial" ? "bg-amber-100 text-amber-700" :
+                                                  "bg-rose-100 text-rose-700"
+                      )}>
+                        {payStatus === "paid" ? "Pago" : payStatus === "partial" ? "Parcial" : "Em aberto"}
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(Number(o.total))}</span>
+                  </div>
+
+                  {/* Cliente */}
+                  {o.customer?.name && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
+                      <User className="w-3.5 h-3.5" />
+                      <span>{o.customer.name}</span>
+                      {o.customer.phone && <span>· {o.customer.phone}</span>}
+                    </div>
+                  )}
+
+                  {/* Itens resumo */}
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : o.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {(o.items ?? []).length} {(o.items ?? []).length === 1 ? "item" : "itens"}
+                    {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+
+                  {/* Itens expandidos */}
+                  {isExpanded && (
+                    <div className="mt-2 space-y-1 border-t border-border/50 pt-2">
+                      {(o.items ?? []).map((item: any) => (
+                        <div key={item.id} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{item.name} ×{item.quantity}</span>
+                          <span className="font-mono font-semibold">{formatCurrency(Number(item.total))}</span>
+                        </div>
+                      ))}
+                      {o.notes && (
+                        <p className="text-xs text-muted-foreground italic mt-1 border-t border-border/30 pt-1">
+                          Obs: {o.notes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Ações */}
+                <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+                  {/* Valor em aberto → abre pagamento */}
+                  {!paid && (
+                    <button
+                      onClick={() => { setPaymentOrder(o); setPayments([{ method: "pix", amount: "", installments: 1 }]); }}
+                      className="col-span-2 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-rose-100 transition-colors"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      Valor em aberto: {formatCurrency(Number(o.total))} — Receber
+                    </button>
+                  )}
+
+                  {/* Entregue */}
+                  <button
+                    onClick={() => {
+                      if (!paid) { toast.error("Confirme o pagamento antes de marcar como entregue."); return; }
+                      markDeliveredMut.mutate({ orderId: o.id } as any);
+                    }}
+                    disabled={markDeliveredMut.isPending}
+                    className={cn(
+                      "py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors",
+                      paid
+                        ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    <Check className="w-3.5 h-3.5" /> Entregue
+                  </button>
+
+                  {/* Cancelar */}
+                  <button
+                    onClick={() => { setCancelOrder(o); setCancelReason(""); }}
+                    className="py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-rose-100 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" /> Cancelar
+                  </button>
+
+                  {/* Editar */}
+                  <button
+                    onClick={() => { setEditOrder(o); setEditReason(""); setEditObs(o.notes ?? ""); }}
+                    className="py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-amber-100 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </button>
+
+                  {/* Personalizar */}
+                  <button
+                    onClick={() => { setCustomOrder(o); setCustomObs(o.notes ?? ""); }}
+                    className="py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors"
+                  >
+                    <Wrench className="w-3.5 h-3.5" /> Personalizar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Pagamento
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!paymentOrder} onOpenChange={v => !v && setPaymentOrder(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Receber Pagamento — #{paymentOrder?.number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Resumo */}
+            <div className="bg-muted/40 rounded-xl p-3">
+              {paymentOrder?.customer?.name && (
+                <div className="flex items-center gap-2 text-sm pb-2 border-b border-border/50 mb-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{paymentOrder.customer.name}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span className="text-primary">{formatCurrency(orderTotal)}</span>
+              </div>
+            </div>
+
+            {/* Formas de pagamento */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">Formas de pagamento</p>
+                {payments.length < PAYMENT_METHODS.length && (
+                  <button onClick={addPaymentMethod} className="text-xs text-primary flex items-center gap-1 hover:underline">
+                    <Plus className="w-3 h-3" /> Adicionar
+                  </button>
+                )}
+              </div>
+
+              {payments.map((pay, idx) => {
+                const isLast = payments.length === 1;
+                return (
+                  <div key={idx} className="border rounded-xl p-3 space-y-3">
+                    {/* Método */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {PAYMENT_METHODS.map(m => {
+                        const MIcon = m.icon;
+                        const alreadyUsed = payments.some((p, i) => i !== idx && p.method === m.value);
+                        return (
+                          <button
+                            key={m.value}
+                            disabled={alreadyUsed}
+                            onClick={() => updatePayment(idx, "method", m.value)}
+                            className={cn(
+                              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all",
+                              pay.method === m.value ? m.color + " border-current" : "border-border bg-muted/30 hover:bg-muted/60",
+                              alreadyUsed && "opacity-30 cursor-not-allowed"
+                            )}
+                          >
+                            <MIcon className="w-3 h-3" /> {m.label}
+                          </button>
+                        );
+                      })}
+                      {!isLast && (
+                        <button onClick={() => removePaymentMethod(idx)} className="ml-auto text-muted-foreground hover:text-destructive">
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Valor */}
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">
+                        Valor {payments.length > 1 ? "(vazio = restante)" : "(vazio = total)"}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                        <input
+                          type="number"
+                          value={pay.amount}
+                          onChange={e => updatePayment(idx, "amount", e.target.value)}
+                          placeholder={idx === payments.length - 1 && remaining > 0 ? String(remaining.toFixed(2)) : "0,00"}
+                          className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Parcelas crédito */}
+                    {pay.method === "credit" && (
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Parcelas</label>
+                        <div className="flex flex-wrap gap-1">
+                          {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                            <button
+                              key={n}
+                              onClick={() => updatePayment(idx, "installments", n)}
+                              className={cn(
+                                "w-9 h-9 rounded-lg text-xs font-bold transition-all",
+                                pay.installments === n ? "bg-purple-600 text-white" : "bg-muted hover:bg-muted/80"
+                              )}
+                            >
+                              {n}x
+                            </button>
+                          ))}
+                          <div className="flex items-center gap-1 ml-1">
+                            <input
+                              type="number"
+                              value={pay.installments}
+                              onChange={e => updatePayment(idx, "installments", Math.max(1, Math.min(48, Number(e.target.value))))}
+                              className="w-14 h-9 text-center text-sm border rounded-lg bg-background"
+                              min="1" max="48"
+                            />
+                            <span className="text-xs text-muted-foreground">x</span>
+                          </div>
+                        </div>
+                        {parseMoney(pay.amount) > 0 && (
+                          <p className="text-xs text-purple-600 font-medium">
+                            {pay.installments}x de {formatCurrency(parseMoney(pay.amount) / pay.installments)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Troco */}
+                    {pay.method === "cash" && parseMoney(pay.amount) > orderTotal && (
+                      <p className="text-xs text-emerald-600 font-medium">
+                        Troco: {formatCurrency(parseMoney(pay.amount) - orderTotal)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {payments.length > 1 && (
+                <div className={cn(
+                  "flex justify-between text-sm font-semibold px-1",
+                  remaining > 0.01 ? "text-rose-600" : "text-emerald-600"
+                )}>
+                  <span>{remaining > 0.01 ? "Falta cobrir:" : "✓ Total coberto"}</span>
+                  {remaining > 0.01 && <span>{formatCurrency(remaining)}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentOrder(null)}>Cancelar</Button>
+            <Button onClick={confirmPayment} disabled={payOrderMut.isPending}>
+              {payOrderMut.isPending ? "Registrando..." : "Confirmar Pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Cancelar
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!cancelOrder} onOpenChange={v => !v && setCancelOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-rose-500" /> Cancelar Pedido #{cancelOrder?.number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Informe o motivo do cancelamento:</p>
+            <Textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder="Motivo do cancelamento..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOrder(null)}>Voltar</Button>
+            <Button
+              variant="destructive"
+              disabled={!cancelReason || cancelOrderMut.isPending}
+              onClick={() => cancelOrderMut.mutate({ orderId: cancelOrder.id, reason: cancelReason } as any)}
+            >
+              {cancelOrderMut.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Editar
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!editOrder} onOpenChange={v => !v && setEditOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-amber-500" /> Editar Pedido #{editOrder?.number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Motivo da edição *</label>
+              <Input
+                value={editReason}
+                onChange={e => setEditReason(e.target.value)}
+                placeholder="Por que está editando?"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Observações</label>
+              <Textarea
+                value={editObs}
+                onChange={e => setEditObs(e.target.value)}
+                placeholder="Observações do pedido..."
+                rows={3}
+              />
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+              <Bell className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                O pedido ficará marcado em vermelho e um alerta será exibido no sininho.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOrder(null)}>Cancelar</Button>
+            <Button
+              disabled={!editReason || editOrderMut.isPending}
+              onClick={() => editOrderMut.mutate({ orderId: editOrder.id, notes: editObs, editReason } as any)}
+            >
+              {editOrderMut.isPending ? "Salvando..." : "Salvar Edição"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Personalizar
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!customOrder} onOpenChange={v => !v && setCustomOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-blue-500" /> Personalizar Pedido #{customOrder?.number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={customObs}
+              onChange={e => setCustomObs(e.target.value)}
+              placeholder="Escreva observações, instruções especiais..."
+              rows={4}
+            />
+            {/* Gravação de áudio (placeholder) */}
+            <div className="flex gap-2">
+              <button className="flex-1 py-2.5 rounded-xl bg-muted border border-border text-xs font-semibold flex items-center justify-center gap-1.5 text-muted-foreground hover:bg-muted/80 transition-colors">
+                <Mic className="w-4 h-4" /> Gravar áudio
+              </button>
+              <button className="flex-1 py-2.5 rounded-xl bg-muted border border-border text-xs font-semibold flex items-center justify-center gap-1.5 text-muted-foreground hover:bg-muted/80 transition-colors">
+                <Paperclip className="w-4 h-4" /> Anexar arquivo
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomOrder(null)}>Cancelar</Button>
+            <Button
+              disabled={customizeOrderMut.isPending}
+              onClick={() => customizeOrderMut.mutate({ orderId: customOrder.id, note: customObs } as any)}
+            >
+              {customizeOrderMut.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

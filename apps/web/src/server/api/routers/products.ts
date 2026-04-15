@@ -129,4 +129,60 @@ export const productsRouter = createTRPCRouter({
     if (error) throw new Error(error.message);
     return data ?? [];
   }),
+
+  createCategory: tenantProcedure
+    .input(z.object({
+      name:  z.string().min(1),
+      emoji: z.string().optional(),
+      color: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supa
+        .from("categories")
+        .insert({
+          tenant_id: ctx.tenant.id,
+          name:      input.name,
+          emoji:     input.emoji ?? "📦",
+          color:     input.color ?? "bg-primary",
+        })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }),
+
+  updateCategory: tenantProcedure
+    .input(z.object({
+      id:    z.string(),
+      name:  z.string().min(1),
+      emoji: z.string().optional(),
+      color: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supa
+        .from("categories")
+        .update({
+          name:  input.name,
+          emoji: input.emoji ?? "📦",
+          color: input.color ?? "bg-primary",
+        })
+        .eq("id", input.id)
+        .eq("tenant_id", ctx.tenant.id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }),
+
+  deleteCategory: tenantProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("categories")
+        .delete()
+        .eq("id", input.id)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }),
 });

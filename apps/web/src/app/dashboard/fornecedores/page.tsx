@@ -61,7 +61,7 @@ export default function FornecedoresPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-5 pb-28 md:pb-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading font-bold text-2xl">Fornecedores</h1>

@@ -2,10 +2,12 @@
 // Execute com: pnpm exec tsx apps/web/scripts/create-admin.ts
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://hyyqcrjfcsdqxoxbmwod.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5eXFjcmpmY3NkcXhveGJtd29kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg1NjE4MCwiZXhwIjoyMDkxNDMyMTgwfQ.s0oBlKoEnI4QHYIdUmv53RBcmtSQnY8b1WG9ZkTDqe4";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 // Usar API REST ao invés de conexão direta
+if (!supabaseUrl) throw new Error("Missing env: NEXT_PUBLIC_SUPABASE_URL");
+if (!supabaseKey) throw new Error("Missing env: SUPABASE_SERVICE_KEY");
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function createAdminUser() {

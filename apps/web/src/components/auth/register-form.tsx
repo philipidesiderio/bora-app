@@ -51,17 +51,24 @@ export function RegisterForm() {
 
       // 2. Criar tenant via API route
       const slug = slugify(data.storeName);
-      await fetch("/api/setup", {
+      const res = await fetch("/api/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ storeName: data.storeName, slug }),
       });
 
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "Falha ao criar a loja");
+      }
+
       toast.success("Conta criada! Bem-vindo ao lumiPOS 🎉");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      toast.error("Erro ao criar conta. Tente novamente.");
+      const message = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
+      toast.error(message);
+    } finally {
       setLoading(false);
     }
   };

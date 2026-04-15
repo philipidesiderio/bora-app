@@ -381,6 +381,139 @@ export const ordersRouter = createTRPCRouter({
       return { ok: true };
     }),
 
+  // ─── Mark order as delivered ─────────────────────────────────────────────
+  markDelivered: tenantProcedure
+    .input(z.object({ orderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("orders")
+        .update({ status: "delivered", updated_at: new Date().toISOString() })
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ok: true };
+    }),
+
+  // ─── Cancel order ────────────────────────────────────────────────────────
+  cancel: tenantProcedure
+    .input(z.object({ orderId: z.string(), reason: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("orders")
+        .update({ status: "cancelled", void_reason: input.reason, updated_at: new Date().toISOString() })
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ok: true };
+    }),
+
+  // ─── Update order notes / edit ───────────────────────────────────────────
+  update: tenantProcedure
+    .input(z.object({
+      orderId:    z.string(),
+      notes:      z.string().optional(),
+      editReason: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("orders")
+        .update({
+          notes:       input.notes ?? null,
+          edited_at:   new Date().toISOString(),
+          edit_reason: input.editReason ?? null,
+          updated_at:  new Date().toISOString(),
+        })
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ok: true };
+    }),
+
+  // ─── Add note to order ───────────────────────────────────────────────────
+  addNote: tenantProcedure
+    .input(z.object({ orderId: z.string(), note: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("orders")
+        .update({ notes: input.note, updated_at: new Date().toISOString() })
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ok: true };
+    }),
+
+  // ─── Pay order (add payment to existing order) ───────────────────────────
+  pay: tenantProcedure
+    .input(z.object({
+      orderId:  z.string(),
+      payments: z.array(z.object({
+        method:       paymentMethodSchema,
+        amount:       z.number().positive(),
+        installments: z.number().optional(),
+      })).min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data: order } = await ctx.supa
+        .from("orders")
+        .select("total, customer_id, number")
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id)
+        .single();
+      if (!order) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const totalPaid = input.payments.reduce((s, p) => s + p.amount, 0);
+
+      // Insert payment records
+      await ctx.supa.from("order_payments").insert(
+        input.payments.map(p => ({
+          tenant_id: ctx.tenant.id,
+          order_id:  input.orderId,
+          method:    p.method,
+          amount:    p.amount,
+          note:      p.installments ? `${p.installments}x` : null,
+        }))
+      );
+
+      // Recalculate payment status
+      const { data: allPayments } = await ctx.supa
+        .from("order_payments")
+        .select("amount")
+        .eq("order_id", input.orderId);
+      const totalAllPaid = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+      const newStatus = calcPaymentStatus(Number(order.total), totalAllPaid);
+
+      await ctx.supa.from("orders").update({
+        payment_status: newStatus,
+        updated_at: new Date().toISOString(),
+      }).eq("id", input.orderId);
+
+      // Update customer credit balance if they had a debt
+      if (order.customer_id) {
+        const { data: customer } = await ctx.supa
+          .from("customers")
+          .select("credit_balance")
+          .eq("id", order.customer_id)
+          .single();
+        if (customer && Number(customer.credit_balance) > 0) {
+          const balanceBefore = Number(customer.credit_balance);
+          const balanceAfter  = Math.max(0, balanceBefore - totalPaid);
+          await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", order.customer_id);
+          await ctx.supa.from("customer_account_history").insert({
+            tenant_id:      ctx.tenant.id,
+            customer_id:    order.customer_id,
+            order_id:       input.orderId,
+            operation:      "sub",
+            amount:         totalPaid,
+            balance_before: balanceBefore,
+            balance_after:  balanceAfter,
+            description:    `Pagamento do pedido #${order.number}`,
+          });
+        }
+      }
+
+      return { ok: true };
+    }),
+
   // ─── Validate + apply coupon ─────────────────────────────────────────────
   applyCoupon: tenantProcedure
     .input(z.object({

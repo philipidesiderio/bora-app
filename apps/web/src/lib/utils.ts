@@ -40,10 +40,15 @@ export function getInitials(name: string): string {
 }
 
 export const PLAN_LABELS: Record<string, string> = {
-  free: "Grátis", smart: "Smart", pro: "Pro", premium: "Premium",
+  free: "Lumi Start", 
+  smart: "Lumi Prime", 
+  pro: "Lumi Business", 
+  premium: "Lumi Elite",
 };
 
 export const PLAN_COLORS: Record<string, string> = {
-  free: "text-muted-foreground", smart: "text-blue-400",
-  pro: "text-orange-400", premium: "text-purple-400",
+  free: "text-emerald-500", 
+  smart: "text-blue-400",
+  pro: "text-orange-400", 
+  premium: "text-purple-400",
 };

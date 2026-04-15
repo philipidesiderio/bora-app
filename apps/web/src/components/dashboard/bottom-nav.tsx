@@ -19,7 +19,8 @@ import {
   FileText, 
   Globe, 
   Gem,
-  Settings
+  Settings,
+  PackageCheck
 } from "lucide-react";
 import { useState } from "react";
 
@@ -30,18 +31,19 @@ const MAIN_TABS = [
 ];
 
 const MORE_ITEMS = [
+  { href: "/dashboard/retiradas",      icon: PackageCheck, label: "Retiradas"    },
   { href: "/dashboard/estoque",        icon: Package,    label: "Estoque"      },
-  { href: "/dashboard/financeiro",     icon: Wallet,    label: "Financeiro"   },
-  { href: "/dashboard/caixa",         icon: Building2,  label: "Caixa"        },
-  { href: "/dashboard/relatorios",    icon: BarChart3,  label: "Relatorios"   },
-  { href: "/dashboard/produtos",      icon: Tag,        label: "Produtos"     },
-  { href: "/dashboard/fornecedores",  icon: Truck,     label: "Fornecedores" },
-  { href: "/dashboard/cupons",        icon: Ticket,    label: "Cupons"       },
-  { href: "/dashboard/historico",    icon: History,    label: "Historico"    },
-  { href: "/dashboard/fiscal",       icon: FileText,   label: "Fiscal"       },
-  { href: "/dashboard/catalogo",    icon: Globe,      label: "Catalogo"     },
-  { href: "/dashboard/ajustes/planos", icon: Gem,       label: "Planos"       },
-  { href: "/dashboard/ajustes",     icon: Settings,   label: "Configuracoes"},
+  { href: "/dashboard/financeiro",     icon: Wallet,     label: "Financeiro"   },
+  { href: "/dashboard/caixa",          icon: Building2,  label: "Caixa"        },
+  { href: "/dashboard/relatorios",     icon: BarChart3,  label: "Relatorios"   },
+  { href: "/dashboard/produtos",       icon: Tag,        label: "Produtos"     },
+  { href: "/dashboard/fornecedores",   icon: Truck,      label: "Fornecedores" },
+  { href: "/dashboard/cupons",         icon: Ticket,     label: "Cupons"       },
+  { href: "/dashboard/historico",      icon: History,    label: "Historico"    },
+  { href: "/dashboard/fiscal",         icon: FileText,   label: "Fiscal"       },
+  { href: "/dashboard/catalogo",       icon: Globe,      label: "Catalogo"     },
+  { href: "/dashboard/ajustes/planos", icon: Gem,        label: "Planos"       },
+  { href: "/dashboard/ajustes",        icon: Settings,   label: "Config."      },
 ];
 
 export function BottomNav() {

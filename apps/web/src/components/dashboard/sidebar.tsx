@@ -80,6 +80,7 @@ type NavSection = {
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   // Nível 1
   cadastros: FileText,
+  vendas: Receipt,
   calendario: Calendar,
   relatorios: BarChart3,
   fiscal: FileSignature,
@@ -87,6 +88,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   pagamentos: CreditCard,
   catalogo: ShoppingBag,
   configuracoes: Settings,
+  // Retiradas
+  retiradas: Package,
   // Submenus
   categorias: FolderOpen,
   produtos: Package,
@@ -99,7 +102,6 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   editarestoque: PenTool,
   vendedores: Users,
   clientes: Users,
-  vendas: Receipt,
   pedidos: TrendingUp,
   graficos: BarChart3,
   consulavendas: DollarSign,
@@ -197,6 +199,7 @@ const SUBMENUS: Record<string, NavSection> = {
     items: [
       { href: "/dashboard/vendas", icon: "vendas", label: "Vendas", badge: "ESSENCIAL", badgeColor: "orange" },
       { href: "/dashboard/pedidos", icon: "pedidos", label: "Pedidos", badge: "ESSENCIAL", badgeColor: "orange" },
+      { href: "/dashboard/retiradas", icon: "retiradas", label: "Retiradas" },
     ]
   },
   graficos: {
@@ -260,7 +263,7 @@ const SUBMENUS: Record<string, NavSection> = {
     items: [
       { href: "/dashboard/financeiro/contas-pagar", icon: "contaspagar", label: "Contas a pagar" },
       { href: "/dashboard/financeiro/contas-receber", icon: "contasreceber", label: "Contas a receber" },
-      { href: "/dashboard/financeiro/contas-cliente", icon: "contascliente", label: "Contas de Cliente (Fiado)" },
+      { href: "/dashboard/financeiro/contas-cliente", icon: "contascliente", label: "Contas de Cliente (Em aberto)" },
       { href: "/dashboard/financeiro/fluxo", icon: "fluxofinanceiro", label: "Fluxo Financeiro" },
     ]
   },

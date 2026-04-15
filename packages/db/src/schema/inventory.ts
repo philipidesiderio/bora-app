@@ -3,7 +3,17 @@ import { createId } from "@paralleldrive/cuid2";
 import { tenants } from "./tenants";
 import { products } from "./products";
 
-export const movTypeEnum = pgEnum("mov_type", ["in","out","adjustment","return"]);
+// Align with values written by the API layer (tRPC routers)
+export const movTypeEnum = pgEnum("mov_type", [
+  "in",
+  "out",
+  "adjustment",
+  "return",
+  "sale",
+  "void-return",
+  "defective",
+  "procurement",
+]);
 
 export const inventoryMovements = pgTable("inventory_movements", {
   id:        text("id").primaryKey().$defaultFn(() => createId()),

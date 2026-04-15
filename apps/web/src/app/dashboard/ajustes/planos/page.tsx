@@ -1,12 +1,12 @@
 "use client";
-import { Check, Crown, Sparkles } from "lucide-react";
+import { Check, Crown, Sparkles, Zap, Rocket, Star } from "lucide-react";
 
 const PLANS = [
   {
-    name: "Grátis",
+    name: "Lumi Start",
     price: "R$ 0",
     period: "/mês",
-    icon: "🌱",
+    icon: Star,
     features: [
       "1 usuário",
       "100 produtos",
@@ -16,12 +16,15 @@ const PLANS = [
     ],
     notFeatures: ["Cupons", "Múltiplas formas de pagamento", "API"],
     current: true,
+    gradient: "from-emerald-500/10 to-emerald-500/5",
+    borderColor: "border-emerald-200",
+    iconColor: "text-emerald-500",
   },
   {
-    name: "Smart",
+    name: "Lumi Prime",
     price: "R$ 39",
     period: "/mês",
-    icon: "⚡",
+    icon: Zap,
     features: [
       "2 usuários",
       "Produtos ilimitados",
@@ -32,12 +35,15 @@ const PLANS = [
       "Fiado e parcelamento",
     ],
     notFeatures: ["API", "Múltiplas lojas"],
+    gradient: "from-blue-500/10 to-blue-500/5",
+    borderColor: "border-blue-200",
+    iconColor: "text-blue-500",
   },
   {
-    name: "Pro",
+    name: "Lumi Business",
     price: "R$ 69",
     period: "/mês",
-    icon: "🚀",
+    icon: Rocket,
     popular: true,
     features: [
       "5 usuários",
@@ -50,12 +56,15 @@ const PLANS = [
       "Integração API",
     ],
     notFeatures: [],
+    gradient: "from-orange-500/10 to-orange-500/5",
+    borderColor: "border-orange-200",
+    iconColor: "text-orange-500",
   },
   {
-    name: "Premium",
+    name: "Lumi Elite",
     price: "R$ 99",
     period: "/mês",
-    icon: "👑",
+    icon: Crown,
     features: [
       "Usuários ilimitados",
       "Produtos ilimitados",
@@ -68,6 +77,9 @@ const PLANS = [
       "Suporte prioritário",
     ],
     notFeatures: [],
+    gradient: "from-purple-500/10 to-purple-500/5",
+    borderColor: "border-purple-200",
+    iconColor: "text-purple-500",
   },
 ];
 
@@ -80,24 +92,24 @@ export default function PlanosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {PLANS.map((plan) => (
+        {PLANS.map((plan) => {
+          const IconComponent = plan.icon;
+          return (
           <div
             key={plan.name}
-            className={`relative rounded-2xl border p-5 flex flex-col ${
-              plan.current
-                ? "border-primary bg-primary/5"
-                : "border-border bg-card"
-            }`}
+            className={`relative rounded-2xl border p-5 flex flex-col bg-gradient-to-br ${plan.gradient} ${plan.current ? plan.borderColor : "border-border"}`}
           >
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full flex items-center gap-1">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg">
                 <Sparkles className="h-3 w-3" />
                 Mais popular
               </div>
             )}
 
             <div className="text-center mb-4">
-              <div className="text-3xl mb-2">{plan.icon}</div>
+              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${plan.gradient} border ${plan.borderColor} mb-3`}>
+                <IconComponent className={`h-7 w-7 ${plan.iconColor}`} />
+              </div>
               <p className="font-heading font-bold text-lg">{plan.name}</p>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-2xl font-bold text-primary">{plan.price}</span>
@@ -131,7 +143,8 @@ export default function PlanosPage() {
               {plan.current ? "Plano atual" : "Assinar"}
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border">

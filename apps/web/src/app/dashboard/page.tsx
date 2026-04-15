@@ -8,50 +8,40 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { StorePreview } from "@/components/dashboard/store-preview";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { UpgradeBanner } from "@/components/dashboard/upgrade-banner";
-import { api } from "@/server/api/server";
+import { DashboardCalendar } from "@/components/dashboard/dashboard-calendar";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-const DEMO_STATS = {
-  userName: "Usuário",
-  todaySales: 0,
-  todayOrders: 0,
-  totalCustomers: 0,
-  lowStockCount: 0,
-};
-
-export default async function DashboardPage() {
-  let stats = DEMO_STATS;
-  try {
-    stats = await api.dashboard.getStats();
-  } catch {}
-
+export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 pb-28 md:pb-6">
       <UpgradeBanner />
 
       <div>
-        <h1 className="font-heading text-2xl font-bold">
-          Bom dia, <span className="text-primary">{stats.userName}!</span>
+        <h1 className="font-heading text-xl md:text-2xl font-bold">
+          Bom dia! 👋
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-0.5">
           Aqui está o resumo do seu negócio hoje.
         </p>
       </div>
 
       <StatsCards />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+      {/* Calendário com filtro de datas */}
+      <DashboardCalendar />
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
         <SalesChart />
         <PaymentsDonut />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <TopProducts />
         <RecentOrders />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <QuickActions />
         <StorePreview />
         <ActivityFeed />

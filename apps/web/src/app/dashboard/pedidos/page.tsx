@@ -78,7 +78,7 @@ export default function PedidosPage() {
   const refundableOrder = orders.find((o: any) => o.id === refundOrderId);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-28 md:pb-6">
       <div>
         <h1 className="font-heading text-2xl font-bold">Pedidos</h1>
         <p className="text-sm text-muted-foreground">{orders.length} pedidos encontrados</p>
