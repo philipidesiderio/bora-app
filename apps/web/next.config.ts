@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       allowedOrigins: [
         "localhost:3000",
         "lumipos.com",
+        "lumiposok.vercel.app",
         "*.vercel.app",
         process.env.NEXT_PUBLIC_APP_URL ?? "",
       ].filter(Boolean),
