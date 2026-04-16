@@ -13,19 +13,33 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Criar usuário via Better-Auth
-    const signUpResult = await auth.api.signUpEmail({
-      body: {
-        email: "mkt.desiderio@gmail.com",
-        password: "Bora@2024",
-        name: "Admin Master",
-      },
-    });
+    let userId: string | undefined;
 
-    if (signUpResult.error) {
-      return NextResponse.json({ error: signUpResult.error.message }, { status: 400 });
+    try {
+      const signUpResult = await auth.api.signUpEmail({
+        body: {
+          email: "mkt.desiderio@gmail.com",
+          password: "Bora@2024",
+          name: "Admin Master",
+        },
+      });
+      userId = signUpResult?.user?.id;
+    } catch (signUpErr: any) {
+      // Se já existe, tenta buscar pelo email
+      const { data: existing } = await (await import("@supabase/supabase-js"))
+        .createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        )
+        .from("users")
+        .select("id")
+        .eq("email", "mkt.desiderio@gmail.com")
+        .single();
+
+      userId = existing?.id;
+      if (!userId) throw signUpErr;
     }
 
-    const userId = signUpResult.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Usuário criado mas ID não retornado" }, { status: 500 });
     }
@@ -33,7 +47,7 @@ export async function GET(req: NextRequest) {
     // 2. Criar tenant padrão
     const [tenant] = await db
       .insert(tenants)
-      .values({ id: `tenant_master`, name: "Bora App", slug: "bora-app" })
+      .values({ id: "tenant_master", name: "Bora App", slug: "bora-app" })
       .onConflictDoNothing()
       .returning();
 
