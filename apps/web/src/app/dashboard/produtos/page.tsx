@@ -81,17 +81,17 @@ export default function ProdutosPage() {
 
   function openEdit(p: any) {
     setForm({
-      name: p.name,
-      price: p.price,
-      costPrice: p.costPrice ?? "",
-      stock: String(p.stock ?? 0),
-      type: p.type,
-      trackStock: p.trackStock ?? true,
-      showInStore: p.showInStore ?? true,
-      categoryId: p.categoryId ?? "",
-      imageUrl: p.imageUrl ?? "",
+      name:        p.name,
+      price:       p.price,
+      costPrice:   p.cost_price ?? "",
+      stock:       String(p.stock ?? 0),
+      type:        p.type,
+      trackStock:  p.track_stock ?? true,
+      showInStore: p.show_in_store ?? true,
+      categoryId:  p.category_id ?? "",
+      imageUrl:    p.image_url ?? "",
     });
-    setImagePreview(p.imageUrl ?? null);
+    setImagePreview(p.image_url ?? null);
     setEditId(p.id);
     setOpen(true);
   }
@@ -169,8 +169,8 @@ export default function ProdutosPage() {
             <div key={p.id} className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
               {/* Imagem */}
               <div className="aspect-square bg-muted relative">
-                {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package className="w-8 h-8 text-muted-foreground/40" />
@@ -203,10 +203,10 @@ export default function ProdutosPage() {
                 <p className="text-xs font-semibold leading-tight line-clamp-2">{p.name}</p>
                 <div className="mt-1.5 flex items-center justify-between">
                   <p className="text-sm font-bold text-primary">{formatCurrency(Number(p.price))}</p>
-                  {p.trackStock && (
+                  {p.track_stock && (
                     <span className={cn(
                       "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-                      (p.stock ?? 0) <= (p.minStock ?? 5)
+                      (p.stock ?? 0) <= (p.min_stock ?? 5)
                         ? "bg-rose-100 text-rose-700"
                         : "bg-emerald-100 text-emerald-700"
                     )}>

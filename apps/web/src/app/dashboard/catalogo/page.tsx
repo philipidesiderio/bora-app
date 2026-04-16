@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/components/providers/trpc-provider";
 
 export default function CatalogoPage() {
-  const { data: tenant } = api.dashboard.getStats.useQuery();
-  const storeSlug = (tenant as any)?.storeSlug ?? "loja-demo";
-  const storeUrl = `lumipos.com/${storeSlug}`;
+  const { data: stats }   = api.dashboard.getStats.useQuery();
+  const { data: business } = api.dashboard.getBusinessData.useQuery();
+  const storeSlug = business?.slug ?? "minha-loja";
+  const storeUrl  = `lumipos.com/${storeSlug}`;
 
   return (
     <div className="space-y-6">
@@ -21,7 +22,7 @@ export default function CatalogoPage() {
             🛍️
           </div>
           <div>
-            <p className="font-heading font-bold text-white">{tenant?.userName ?? "Minha Loja"}</p>
+            <p className="font-heading font-bold text-white">{business?.name ?? stats?.userName ?? "Minha Loja"}</p>
             <p className="text-xs text-white/70 font-mono">{storeUrl}</p>
           </div>
         </div>

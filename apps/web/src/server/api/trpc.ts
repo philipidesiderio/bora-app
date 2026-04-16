@@ -13,9 +13,6 @@ function getSupabaseClient() {
   );
 }
 
-const DEMO_TENANT_ID = "tenant_demo01";
-const DEMO_USER_ID   = "user_demo01";
-
 interface CreateContextOptions { req: NextRequest }
 
 export const createTRPCContext = async (opts: CreateContextOptions) => {
@@ -31,29 +28,20 @@ export const createTRPCContext = async (opts: CreateContextOptions) => {
   } catch {}
 
   if (session?.user?.id) {
+    // Busca tenant_id do usuário diretamente (sem join — mais robusto)
     const { data: userData } = await supa
       .from("users")
-      .select("*, tenants(*)")
+      .select("tenant_id")
       .eq("id", session.user.id)
       .single();
-    tenant = userData?.tenants ?? null;
-  }
 
-  // Demo mode — sem sessão, usa tenant demo
-  if (!tenant) {
-    const { data: demoTenant } = await supa
-      .from("tenants")
-      .select("*")
-      .eq("id", DEMO_TENANT_ID)
-      .single();
-
-    if (demoTenant) {
-      tenant = demoTenant;
-      if (!session) {
-        session = {
-          user: { id: DEMO_USER_ID, name: "Demo", email: "demo@lumipos.com" },
-        };
-      }
+    if (userData?.tenant_id) {
+      const { data: tenantData } = await supa
+        .from("tenants")
+        .select("*")
+        .eq("id", userData.tenant_id)
+        .single();
+      tenant = tenantData ?? null;
     }
   }
 

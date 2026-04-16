@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createTRPCRouter, tenantProcedure } from "../trpc";
 
 export const dashboardRouter = createTRPCRouter({
@@ -52,6 +53,44 @@ export const dashboardRouter = createTRPCRouter({
       lowStockCount,
     };
   }),
+
+  getBusinessData: tenantProcedure.query(async ({ ctx }) => {
+    const { data, error } = await ctx.supa
+      .from("tenants")
+      .select("id, name, slug, phone, cnpj, description, logo_url, plan")
+      .eq("id", ctx.tenant.id)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }),
+
+  updateBusinessData: tenantProcedure
+    .input(z.object({
+      name:        z.string().min(1, "Nome é obrigatório"),
+      phone:       z.string().optional(),
+      cnpj:        z.string().optional(),
+      description: z.string().optional(),
+      logoUrl:     z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { data, error } = await ctx.supa
+        .from("tenants")
+        .update({
+          name:        input.name,
+          phone:       input.phone       ?? null,
+          cnpj:        input.cnpj        ?? null,
+          description: input.description ?? null,
+          logo_url:    input.logoUrl     ?? null,
+          updated_at:  new Date().toISOString(),
+        })
+        .eq("id", ctx.tenant.id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    }),
 
   getRecentOrders: tenantProcedure.query(async ({ ctx }) => {
     const { data, error } = await ctx.supa

@@ -1,167 +1,295 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Scissors, Image, Upload } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Scissors, ImagePlus, X } from "lucide-react";
+import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
-type ServicoForm = { name: string; price: string; description: string; imageUrl: string };
+type ServicoForm = {
+  name: string;
+  price: string;
+  costPrice: string;
+  description: string;
+  imageUrl: string;
+};
 
-const emptyForm: ServicoForm = { name: "", price: "", description: "", imageUrl: "" };
-
-// Mock data for demo
-const mockServicos = [
-  { id: "1", name: "Corte Feminino", price: 45, description: "Corte moderno", imageUrl: "" },
-  { id: "2", name: "Corte Masculino", price: 30, description: "Corte clássico", imageUrl: "" },
-  { id: "3", name: "Pintura", price: 80, description: "Coloração completa", imageUrl: "" },
-];
+const emptyForm: ServicoForm = {
+  name: "", price: "", costPrice: "", description: "", imageUrl: "",
+};
 
 export default function ServicosPage() {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<ServicoForm>(emptyForm);
+  const [search, setSearch]   = useState("");
+  const [open, setOpen]       = useState(false);
+  const [editId, setEditId]   = useState<string | null>(null);
+  const [form, setForm]       = useState<ServicoForm>(emptyForm);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const utils = api.useUtils();
 
-  const [servicos, setServicos] = useState(mockServicos);
+  const { data: servicos = [], isLoading } = api.products.list.useQuery({
+    search,
+    type: "service",
+    limit: 100,
+  });
 
-  function openNew() { setForm(emptyForm); setEditId(null); setImagePreview(null); setOpen(true); }
-  function openEdit(s: typeof servicos[0]) {
-    setForm({ name: s.name, price: String(s.price), description: s.description, imageUrl: s.imageUrl });
-    setEditId(s.id);
-    setImagePreview(s.imageUrl || null);
+  const createMut = api.products.create.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
+      toast.success("Serviço criado!");
+      setOpen(false);
+      setForm(emptyForm);
+      setImagePreview(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMut = api.products.update.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
+      toast.success("Serviço atualizado!");
+      setOpen(false);
+      setEditId(null);
+      setForm(emptyForm);
+      setImagePreview(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMut = api.products.delete.useMutation({
+    onSuccess: () => { utils.products.list.invalidate(); toast.success("Serviço removido!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function openNew() {
+    setForm(emptyForm);
+    setEditId(null);
+    setImagePreview(null);
     setOpen(true);
   }
 
-  function handleSubmit() {
-    if (!form.name.trim() || !form.price) { toast.error("Nome e preço são obrigatórios"); return; }
-    if (editId) {
-      setServicos(prev => prev.map(s => s.id === editId ? { ...s, name: form.name, price: Number(form.price), description: form.description, imageUrl: form.imageUrl } : s));
-      toast.success("Serviço atualizado!");
-    } else {
-      setServicos(prev => [...prev, { id: Date.now().toString(), name: form.name, price: Number(form.price), description: form.description, imageUrl: form.imageUrl }]);
-      toast.success("Serviço criado!");
-    }
-    setOpen(false);
-    setForm(emptyForm);
-    setImagePreview(null);
+  function openEdit(s: any) {
+    setForm({
+      name:        s.name,
+      price:       String(s.price),
+      costPrice:   s.cost_price ?? "",
+      description: s.description ?? "",
+      imageUrl:    s.image_url ?? "",
+    });
+    setImagePreview(s.image_url ?? null);
+    setEditId(s.id);
+    setOpen(true);
   }
 
-  function handleDelete(id: string) {
-    setServicos(prev => prev.filter(s => s.id !== id));
-    toast.success("Serviço removido!");
-  }
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        setForm(f => ({ ...f, imageUrl: result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 5MB.");
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string;
+      setImagePreview(url);
+      setForm(f => ({ ...f, imageUrl: url }));
+    };
+    reader.readAsDataURL(file);
   }
 
-  const filteredServicos = servicos.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  function handleSubmit() {
+    if (!form.name.trim() || !form.price) {
+      toast.error("Nome e preço são obrigatórios");
+      return;
+    }
+    const data = {
+      name:        form.name,
+      description: form.description || undefined,
+      imageUrl:    form.imageUrl || undefined,
+      price:       Number(form.price),
+      costPrice:   form.costPrice ? Number(form.costPrice) : undefined,
+      stock:       0,
+      minStock:    0,
+      type:        "service" as const,
+      trackStock:  false,
+      showInStore: true,
+    };
+    if (editId) updateMut.mutate({ ...data, id: editId });
+    else        createMut.mutate(data);
+  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-5 pb-28 md:pb-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">Serviços</h1>
-          <p className="text-sm text-muted-foreground">{servicos.length} serviços cadastrados</p>
+          <p className="text-sm text-muted-foreground">{servicos.length} serviço{servicos.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4" /> Novo Serviço</Button>
+        <Button onClick={openNew} size="sm">
+          <Plus className="h-4 w-4 mr-1" /> Novo
+        </Button>
       </div>
 
-      <div className="relative max-w-sm">
+      {/* Busca */}
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar serviços..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input
+          placeholder="Buscar serviços..."
+          className="pl-9"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
 
-      {filteredServicos.length === 0 ? (
+      {/* Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-square rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : servicos.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Scissors className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">Nenhum serviço encontrado</p>
-          <p className="text-sm mt-1">Clique em "Novo Serviço" para começar</p>
+          <p className="text-sm mt-1">Clique em "Novo" para começar</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredServicos.map(s => (
-            <Card key={s.id} className="p-4 flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-2">
-                {s.imageUrl ? (
-                  <img src={s.imageUrl} alt={s.name} className="w-16 h-16 rounded-xl object-cover" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {servicos.map((s: any) => (
+            <div key={s.id} className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+              <div className="aspect-square bg-muted relative">
+                {s.image_url ? (
+                  <img src={s.image_url} alt={s.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
-                    <Scissors className="w-8 h-8 text-muted-foreground" />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Scissors className="w-8 h-8 text-muted-foreground/40" />
                   </div>
                 )}
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-                    <Pencil className="h-3.5 w-3.5" />
+                <div className="absolute top-1.5 right-1.5 flex gap-1">
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm shadow flex items-center justify-center hover:bg-white"
+                  >
+                    <Pencil className="h-3 w-3 text-foreground" />
                   </button>
-                  <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <button
+                    onClick={() => deleteMut.mutate({ id: s.id })}
+                    className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm shadow flex items-center justify-center hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3 w-3 text-destructive" />
                   </button>
                 </div>
               </div>
-              <div className="flex-1">
-                <p className="font-semibold">{s.name}</p>
-                {s.description && <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>}
+              <div className="p-2.5 flex-1 flex flex-col justify-between">
+                <p className="text-xs font-semibold leading-tight line-clamp-2">{s.name}</p>
+                {s.description && (
+                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{s.description}</p>
+                )}
+                <p className="text-sm font-bold text-primary mt-1.5">{formatCurrency(Number(s.price))}</p>
               </div>
-              <p className="text-lg font-bold text-primary">{formatCurrency(s.price)}</p>
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle></DialogHeader>
+      {/* Dialog */}
+      <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setImagePreview(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+          </DialogHeader>
+
           <div className="space-y-4">
-            {/* Image Upload */}
-            <div className="space-y-2">
+            {/* Foto */}
+            <div className="space-y-1.5">
               <label className="text-sm font-medium">Foto do serviço</label>
-              <div className="flex items-center gap-4">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "relative w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-all flex items-center justify-center overflow-hidden",
+                  imagePreview ? "border-primary/30" : "border-border hover:border-primary/50 hover:bg-muted/30"
+                )}
+              >
                 {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-24 h-24 rounded-xl object-cover" />
+                  <>
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      onClick={e => { e.stopPropagation(); setImagePreview(null); setForm(f => ({ ...f, imageUrl: "" })); }}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
                 ) : (
-                  <div className="w-24 h-24 rounded-xl bg-muted flex items-center justify-center">
-                    <Image className="w-8 h-8 text-muted-foreground" />
+                  <div className="text-center text-muted-foreground">
+                    <ImagePlus className="w-7 h-7 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">Clique para adicionar foto</p>
                   </div>
                 )}
-                <label className="cursor-pointer">
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                    <Upload className="w-4 h-4" /> Upload foto
-                  </span>
-                </label>
               </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
             </div>
-            
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Nome *</label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome do serviço" />
+              <Input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Nome do serviço"
+              />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Preço *</label>
-              <Input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="0,00" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Preço *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                  <Input
+                    type="number"
+                    value={form.price}
+                    onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                    placeholder="0,00"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Custo</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                  <Input
+                    type="number"
+                    value={form.costPrice}
+                    onChange={e => setForm(f => ({ ...f, costPrice: e.target.value }))}
+                    placeholder="0,00"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </div>
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Descrição</label>
-              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Descrição do serviço" />
+              <Input
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Descrição do serviço"
+              />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit}>{editId ? "Salvar" : "Criar"}</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!form.name || !form.price || createMut.isPending || updateMut.isPending}
+            >
+              {createMut.isPending || updateMut.isPending ? "Salvando..." : editId ? "Salvar" : "Criar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

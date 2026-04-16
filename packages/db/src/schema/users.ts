@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { tenants } from "./tenants";
@@ -6,14 +6,15 @@ import { tenants } from "./tenants";
 export const roleEnum = pgEnum("role", ["owner", "admin", "seller", "cashier"]);
 
 export const users = pgTable("users", {
-  id:        text("id").primaryKey().$defaultFn(() => createId()),
-  tenantId:  text("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
-  name:      text("name").notNull(),
-  email:     text("email").notNull().unique(),
-  image:     text("image"),
-  role:      roleEnum("role").default("owner").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  id:             text("id").primaryKey().$defaultFn(() => createId()),
+  tenantId:       text("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+  name:           text("name").notNull(),
+  email:          text("email").notNull().unique(),
+  emailVerified:  boolean("email_verified").default(false).notNull(),
+  image:          text("image"),
+  role:           roleEnum("role").default("owner").notNull(),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const sessions = pgTable("sessions", {
@@ -35,6 +36,8 @@ export const accounts = pgTable("accounts", {
   accessToken:          text("access_token"),
   refreshToken:         text("refresh_token"),
   accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  password:             text("password"),
+  idToken:              text("id_token"),
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
 });

@@ -11,6 +11,7 @@ const DEMO_USER: User = {
   id: "demo",
   name: "Demo",
   email: "demo@lumipos.com",
+  emailVerified: false,
   image: null,
   role: "owner",
   tenantId: null,

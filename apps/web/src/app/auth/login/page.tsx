@@ -16,12 +16,6 @@ export default function LoginPage() {
           </p>
         </div>
         <LoginForm />
-        <a
-          href="/dashboard"
-          className="mt-4 flex w-full items-center justify-center rounded-lg bg-primary py-3 text-sm font-semibold text-white hover:opacity-90"
-        >
-          Entrar direto →
-        </a>
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Não tem conta?{" "}
           <a href="/auth/register" className="text-primary hover:underline font-medium">

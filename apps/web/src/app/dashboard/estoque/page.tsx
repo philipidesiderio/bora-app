@@ -65,7 +65,7 @@ export default function EstoquePage() {
     setAdjustOpen(true);
   }
 
-  const trackedProducts = allProducts.filter((p: any) => p.trackStock);
+  const trackedProducts = allProducts.filter((p: any) => p.track_stock);
   const filteredProducts = trackedProducts.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -98,7 +98,7 @@ export default function EstoquePage() {
               <div key={p.id} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-amber-100">
                 <div>
                   <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-amber-600">Atual: {p.stock ?? 0} · Mín: {p.minStock ?? 5}</p>
+                  <p className="text-xs text-amber-600">Atual: {p.stock ?? 0} · Mín: {p.min_stock ?? 5}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => openAdjust(p)} className="border-amber-300 text-amber-700 hover:bg-amber-50 text-xs">
                   Repor
@@ -132,7 +132,7 @@ export default function EstoquePage() {
           <div className="space-y-2">
             {filteredProducts.map((p: any) => {
               const stock = p.stock ?? 0;
-              const min   = p.minStock ?? 5;
+              const min   = p.min_stock ?? 5;
               const low   = stock <= min;
               const pct   = min > 0 ? Math.min(100, (stock / (min * 3)) * 100) : 100;
               return (

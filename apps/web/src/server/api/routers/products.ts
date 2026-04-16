@@ -4,6 +4,7 @@ import { createTRPCRouter, tenantProcedure } from "../trpc";
 const productSchema = z.object({
   name:        z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
+  imageUrl:    z.string().optional(),
   price:       z.number().positive("Preço deve ser positivo"),
   costPrice:   z.number().optional(),
   stock:       z.number().int().default(0),
@@ -20,6 +21,7 @@ export const productsRouter = createTRPCRouter({
     .input(z.object({
       search:     z.string().optional(),
       categoryId: z.string().optional(),
+      type:       z.enum(["product", "service", "combo"]).optional(),
       page:       z.number().default(1),
       limit:      z.number().default(20),
     }))
@@ -41,6 +43,9 @@ export const productsRouter = createTRPCRouter({
       if (input.categoryId) {
         query = query.eq("category_id", input.categoryId);
       }
+      if (input.type) {
+        query = query.eq("type", input.type);
+      }
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
@@ -58,6 +63,7 @@ export const productsRouter = createTRPCRouter({
           tenant_id:    ctx.tenant.id,
           name:        input.name,
           description: input.description ?? null,
+          image_url:   input.imageUrl ?? null,
           price:       input.price,
           cost_price:  input.costPrice ?? null,
           stock:       input.stock,
@@ -86,6 +92,7 @@ export const productsRouter = createTRPCRouter({
         .update({
           name:          rest.name,
           description:   rest.description ?? null,
+          image_url:     rest.imageUrl ?? null,
           price:         rest.price,
           cost_price:    rest.costPrice ?? null,
           stock:         rest.stock,

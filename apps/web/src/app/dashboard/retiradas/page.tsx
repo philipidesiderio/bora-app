@@ -62,8 +62,8 @@ export default function RetiradasPage() {
 
   const { data: orders = [], isLoading } = api.orders.list.useQuery({
     limit: 100,
-    deliveryType: "later",
-  } as any);
+    status: "ready",
+  });
 
   const filtered = orders.filter((o: any) => {
     if (!search) return true;
