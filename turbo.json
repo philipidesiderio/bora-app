@@ -2,8 +2,14 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "DATABASE_URL",
+    "DB_PROXY_URL",
+    "DB_PROXY_SECRET",
     "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
     "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_APP_NAME",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NODE_ENV"
   ],
   "tasks": {
