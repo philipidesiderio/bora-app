@@ -36,33 +36,33 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterData) => {
     setLoading(true);
     try {
-      // 1. Criar conta no better-auth
-      const { error } = await authClient.signUp.email({
-        email:    data.email,
-        password: data.password,
-        name:     data.name,
-      });
-
-      if (error) {
-        toast.error(error.message ?? "Erro ao criar conta");
-        setLoading(false);
-        return;
-      }
-
-      // 2. Criar tenant via API route
+      // Criar conta + tenant em uma única chamada server-side
       const slug = slugify(data.storeName);
-      const res = await fetch("/api/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeName: data.storeName, slug }),
+      const res = await fetch("/api/register", {
+        method:      "POST",
+        headers:     { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name:      data.name,
+          email:     data.email,
+          password:  data.password,
+          storeName: data.storeName,
+          slug,
+        }),
       });
+
+      const body = await res.json().catch(() => null);
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Falha ao criar a loja");
+        throw new Error(body?.error ?? "Falha ao criar a conta");
       }
 
-      toast.success("Conta criada! Bem-vindo ao lumiPOS 🎉");
+      // Garante que a sessão está ativa (força leitura do cookie)
+      try {
+        await authClient.getSession({ fetchOptions: { cache: "no-store" } });
+      } catch {}
+
+      toast.success("Conta criada! Bem-vindo ao lumiPOS");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
