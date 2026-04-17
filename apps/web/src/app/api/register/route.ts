@@ -4,50 +4,64 @@ import { db, tenants, users } from "@bora/db";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
+  let stage = "parse-body";
   try {
     const { name, email, password, storeName, slug } = await req.json();
 
     if (!name || !email || !password || !storeName || !slug) {
       return NextResponse.json(
-        { error: "Campos obrigatórios faltando" },
+        { error: "Campos obrigatórios faltando", stage },
         { status: 400 },
       );
     }
 
     // 1. Cria usuário via Better-Auth (seta cookie de sessão na resposta)
+    stage = "signup";
     let signUpResponse: Response;
     try {
       signUpResponse = await auth.api.signUpEmail({
-        body: { email, password, name },
+        body:       { email, password, name },
         asResponse: true,
-        headers: req.headers,
       });
     } catch (err: any) {
-      const msg = err?.message ?? "Falha ao criar usuário";
-      return NextResponse.json({ error: msg }, { status: 400 });
+      const msg = err?.message ?? err?.body?.message ?? "Falha ao criar usuário";
+      console.error("[register][signup-throw]", err);
+      return NextResponse.json({ error: msg, stage }, { status: 400 });
     }
 
     if (!signUpResponse.ok) {
-      const body = await signUpResponse.json().catch(() => ({}));
+      const rawBody = await signUpResponse.text();
+      console.error("[register][signup-fail]", signUpResponse.status, rawBody);
+      let parsed: any = null;
+      try { parsed = JSON.parse(rawBody); } catch {}
+      const msg =
+        parsed?.message ??
+        parsed?.error ??
+        (signUpResponse.status === 422
+          ? "Email já cadastrado"
+          : `Falha ao criar usuário (${signUpResponse.status})`);
       return NextResponse.json(
-        { error: body?.message ?? "Email já cadastrado ou inválido" },
+        { error: msg, stage, status: signUpResponse.status },
         { status: signUpResponse.status },
       );
     }
 
-    const signUpBody = await signUpResponse.json().catch(() => null) as
-      | { user?: { id?: string } }
+    stage = "parse-signup-body";
+    const signUpBody = (await signUpResponse.json().catch(() => null)) as
+      | { user?: { id?: string }; token?: string }
       | null;
     const userId = signUpBody?.user?.id;
 
     if (!userId) {
+      console.error("[register][no-user-id]", signUpBody);
       return NextResponse.json(
-        { error: "Conta criada mas ID não retornado" },
+        { error: "Conta criada mas ID não retornado", stage },
         { status: 500 },
       );
     }
 
     // 2. Cria tenant (slug único — ajusta se já existe)
+    stage = "create-tenant";
     let finalSlug = slug;
     const existing = await db
       .select({ id: tenants.id })
@@ -66,12 +80,13 @@ export async function POST(req: NextRequest) {
 
     if (!tenant) {
       return NextResponse.json(
-        { error: "Falha ao criar loja" },
+        { error: "Falha ao criar loja", stage },
         { status: 500 },
       );
     }
 
     // 3. Vincula usuário ao tenant como owner
+    stage = "link-user";
     await db
       .update(users)
       .set({ tenantId: tenant.id, role: "owner" })
@@ -79,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Retorna resposta copiando os Set-Cookie do signUp
     const res = NextResponse.json({
-      ok: true,
+      ok:       true,
       tenantId: tenant.id,
       userId,
     });
@@ -89,9 +104,13 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (err: any) {
-    console.error("[register]", err);
+    console.error("[register][unhandled]", stage, err);
     return NextResponse.json(
-      { error: err?.message ?? "Erro interno ao criar conta" },
+      {
+        error: err?.message ?? "Erro interno ao criar conta",
+        stage,
+        name:  err?.name,
+      },
       { status: 500 },
     );
   }
