@@ -3,22 +3,28 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
+import { api } from "@/components/providers/trpc-provider";
 
-const data = [
-  { day: "Seg", value: 1200 }, { day: "Ter", value: 1800 },
-  { day: "Qua", value:  950 }, { day: "Qui", value: 2200 },
-  { day: "Hoj", value: 1847, today: true },
-  { day: "Sáb", value:  0  }, { day: "Dom", value:  0  },
-];
+const MONTHLY_GOAL = 12_000; // TODO: por na config do tenant
 
 export function SalesChart() {
+  const { data, isLoading } = api.dashboard.getSalesLast7Days.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const buckets    = data?.buckets ?? [];
+  const monthTotal = data?.monthTotal ?? 0;
+  const pct        = Math.min(100, Math.round((monthTotal / MONTHLY_GOAL) * 100));
+  const hasData    = buckets.some(b => b.value > 0);
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="font-heading text-base">Vendas dos últimos 7 dias</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">Comparado à semana anterior</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Receita diária</p>
           </div>
           <div className="flex gap-1 p-1 bg-muted rounded-lg">
             {["Semana","Mês"].map((t,i) => (
@@ -28,28 +34,34 @@ export function SalesChart() {
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={data} barSize={28}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-            <YAxis hide />
-            <Tooltip
-              formatter={(v: number) => [formatCurrency(v), "Vendas"]}
-              contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-              cursor={{ fill: "hsl(var(--accent))" }}
-            />
-            <Bar dataKey="value" radius={[6,6,0,0]}
-              fill="hsl(var(--primary))"
-              className="transition-opacity"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        {isLoading ? (
+          <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">Carregando…</div>
+        ) : !hasData ? (
+          <div className="h-[160px] flex flex-col items-center justify-center text-center">
+            <p className="text-sm font-medium">Sem vendas nos últimos 7 dias</p>
+            <p className="text-xs text-muted-foreground mt-1">Suas vendas aparecerão neste gráfico.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={buckets} barSize={28}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip
+                formatter={(v: number) => [formatCurrency(v), "Vendas"]}
+                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                cursor={{ fill: "hsl(var(--accent))" }}
+              />
+              <Bar dataKey="value" radius={[6,6,0,0]} fill="hsl(var(--primary))" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
         <div className="mt-4 space-y-1.5">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Meta mensal: R$12.000</span>
-            <span className="font-semibold">R$8.340 <span className="text-muted-foreground font-normal">(69%)</span></span>
+            <span className="text-muted-foreground">Meta mensal: {formatCurrency(MONTHLY_GOAL)}</span>
+            <span className="font-semibold">{formatCurrency(monthTotal)} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
           </div>
-          <Progress value={69} className="h-1.5" />
+          <Progress value={pct} className="h-1.5" />
         </div>
       </CardContent>
     </Card>

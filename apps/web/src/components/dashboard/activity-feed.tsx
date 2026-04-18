@@ -1,34 +1,59 @@
 "use client";
-import { CheckCircle, ShoppingBag, AlertTriangle, User, RotateCcw } from "lucide-react";
+import { CheckCircle, Sparkles } from "lucide-react";
+import { api } from "@/components/providers/trpc-provider";
+import { formatCurrency } from "@/lib/utils";
 
-const ACTIVITY_ITEMS = [
-  { icon: CheckCircle, bg: "bg-emerald-500/10", color: "text-emerald-600", msg: <>Venda <strong>#1042</strong> conclua - R$89,90 via PIX</>, time: "5 min"  },
-  { icon: ShoppingBag, bg: "bg-blue-500/10",    color: "text-blue-600",   msg: <>Novo pedido online de <strong>Maria Santos</strong></>,            time: "14 min" },
-  { icon: AlertTriangle, bg: "bg-yellow-500/10",  color: "text-yellow-600", msg: <>Estoque baixo: <strong>Tenis Running</strong> (2 un.)</>,          time: "32 min" },
-  { icon: User, bg: "bg-purple-500/10",  color: "text-purple-600",    msg: <>Novo cliente: <strong>Pedro M.</strong></>,                           time: "1h"     },
-  { icon: RotateCcw, bg: "bg-red-500/10",     color: "text-red-600",     msg: <>Devolucao registrada no pedido <strong>#1039</strong></>,          time: "2h"     },
-];
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1)   return "agora";
+  if (mins < 60)  return `${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs  < 24)  return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
 
 export function ActivityFeed() {
+  const { data, isLoading } = api.dashboard.getRecentOrders.useQuery(undefined, {
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+  const orders = data ?? [];
+
   return (
     <div className="bg-card rounded-xl border p-4">
       <h2 className="text-sm font-semibold mb-4">Atividade Recente</h2>
-      <div className="space-y-3">
-        {ACTIVITY_ITEMS.map((item, i) => {
-          const IconComponent = item.icon;
-          return (
-            <div key={i} className="flex items-start gap-3">
-              <div className={`w-8 h-8 rounded-full ${item.bg} flex items-center justify-center flex-shrink-0`}>
-                <IconComponent className={`w-4 h-4 ${item.color}`} />
+
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Carregando…</p>
+      ) : orders.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <p className="text-sm font-medium mb-1">Tudo pronto!</p>
+          <p className="text-xs text-muted-foreground">
+            Suas atividades aparecerão aqui conforme você usar o sistema.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((o: any) => (
+            <div key={o.id} className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground">{item.msg}</p>
-                <span className="text-xs text-muted-foreground/60">{item.time} atras</span>
+                <p className="text-sm text-muted-foreground">
+                  Pedido <strong>#{o.number ?? o.id.slice(0, 6)}</strong> — {formatCurrency(Number(o.total ?? 0))}
+                </p>
+                <span className="text-xs text-muted-foreground/60">{timeAgo(o.created_at)} atrás</span>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
