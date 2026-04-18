@@ -95,13 +95,32 @@ export const dashboardRouter = createTRPCRouter({
   getRecentOrders: tenantProcedure.query(async ({ ctx }) => {
     const { data, error } = await ctx.supa
       .from("orders")
-      .select("id, number, total, status, payment_status, created_at, customer:customers(name)")
+      .select("id, number, total, status, payment_status, customer_id, created_at")
       .eq("tenant_id", ctx.tenant.id)
       .order("created_at", { ascending: false })
       .limit(5);
 
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const orders = data ?? [];
+
+    // Busca nomes dos clientes separadamente (sem depender de FK no PostgREST)
+    const customerIds = Array.from(
+      new Set(orders.map(o => o.customer_id).filter(Boolean)),
+    ) as string[];
+
+    let nameById: Record<string, string> = {};
+    if (customerIds.length > 0) {
+      const { data: customers } = await ctx.supa
+        .from("customers")
+        .select("id, name")
+        .in("id", customerIds);
+      nameById = Object.fromEntries((customers ?? []).map(c => [c.id, c.name]));
+    }
+
+    return orders.map(o => ({
+      ...o,
+      customer: o.customer_id ? { name: nameById[o.customer_id] ?? null } : null,
+    }));
   }),
 
   getTopProducts: tenantProcedure.query(async ({ ctx }) => {

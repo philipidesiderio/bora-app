@@ -28,7 +28,7 @@ export const productsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       let query = ctx.supa
         .from("products")
-        .select("*, category:categories(*)")
+        .select("*")
         .eq("tenant_id", ctx.tenant.id)
         .eq("is_active", true)
         .order("name", { ascending: true })
