@@ -223,7 +223,7 @@ export const customersRouter = createTRPCRouter({
       if (!customer) throw new TRPCError({ code: "NOT_FOUND" });
       const balanceBefore = Number(customer.credit_balance ?? 0);
       const balanceAfter  = balanceBefore + input.amount;
-      await ctx.supa.from("customers").update({ credit_balance: balanceAfter, updated_at: new Date().toISOString() }).eq("id", input.customerId);
+      await ctx.supa.from("customers").update({ credit_balance: balanceAfter, updated_at: new Date().toISOString() }).eq("id", input.customerId).eq("tenant_id", ctx.tenant.id);
       await ctx.supa.from("customer_account_history").insert({
         tenant_id: ctx.tenant.id, customer_id: input.customerId,
         operation: "add", amount: input.amount,
@@ -246,7 +246,7 @@ export const customersRouter = createTRPCRouter({
       if (!customer) throw new TRPCError({ code: "NOT_FOUND" });
       const balanceBefore = Number(customer.credit_balance ?? 0);
       const balanceAfter  = Math.max(0, balanceBefore - input.amount);
-      await ctx.supa.from("customers").update({ credit_balance: balanceAfter, updated_at: new Date().toISOString() }).eq("id", input.customerId);
+      await ctx.supa.from("customers").update({ credit_balance: balanceAfter, updated_at: new Date().toISOString() }).eq("id", input.customerId).eq("tenant_id", ctx.tenant.id);
       await ctx.supa.from("customer_account_history").insert({
         tenant_id: ctx.tenant.id, customer_id: input.customerId, order_id: input.orderId ?? null,
         operation: "sub", amount: input.amount,

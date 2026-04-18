@@ -166,7 +166,7 @@ export const ordersRouter = createTRPCRouter({
           .single();
         if (!product?.track_stock) continue;
         const newStock = (product.stock ?? 0) + Number(item.quantity);
-        await ctx.supa.from("products").update({ stock: newStock }).eq("id", item.product_id);
+        await ctx.supa.from("products").update({ stock: newStock }).eq("id", item.product_id).eq("tenant_id", ctx.tenant.id);
         await ctx.supa.from("inventory_movements").insert({
           tenant_id:    ctx.tenant.id,
           product_id:   item.product_id,
@@ -184,7 +184,7 @@ export const ordersRouter = createTRPCRouter({
         void_reason:    input.reason,
         status:         "cancelled",
         updated_at:     new Date().toISOString(),
-      }).eq("id", input.orderId);
+      }).eq("id", input.orderId).eq("tenant_id", ctx.tenant.id);
 
       return { ok: true };
     }),
@@ -258,7 +258,7 @@ export const ordersRouter = createTRPCRouter({
             .single();
           if (product?.track_stock) {
             const newStock = (product.stock ?? 0) + ri.quantity;
-            await ctx.supa.from("products").update({ stock: newStock }).eq("id", orderItem.product_id);
+            await ctx.supa.from("products").update({ stock: newStock }).eq("id", orderItem.product_id).eq("tenant_id", ctx.tenant.id);
             await ctx.supa.from("inventory_movements").insert({
               tenant_id:    ctx.tenant.id,
               product_id:   orderItem.product_id,
@@ -281,7 +281,7 @@ export const ordersRouter = createTRPCRouter({
           .single();
         const balanceBefore = Number(customer?.credit_balance ?? 0);
         const balanceAfter  = balanceBefore + totalRefund;
-        await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", order.customer_id);
+        await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", order.customer_id).eq("tenant_id", ctx.tenant.id);
         await ctx.supa.from("customer_account_history").insert({
           tenant_id:      ctx.tenant.id,
           customer_id:    order.customer_id,
@@ -299,7 +299,7 @@ export const ordersRouter = createTRPCRouter({
       await ctx.supa.from("orders").update({
         payment_status: newPayStatus,
         updated_at: new Date().toISOString(),
-      }).eq("id", input.orderId);
+      }).eq("id", input.orderId).eq("tenant_id", ctx.tenant.id);
 
       return { ok: true, refundId: refund.id };
     }),
@@ -365,7 +365,7 @@ export const ordersRouter = createTRPCRouter({
           .single();
         const balanceBefore = Number(customer?.credit_balance ?? 0);
         const balanceAfter  = Math.max(0, balanceBefore - input.amount);
-        await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", instalment.order.customer_id);
+        await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", instalment.order.customer_id).eq("tenant_id", ctx.tenant.id);
         await ctx.supa.from("customer_account_history").insert({
           tenant_id:      ctx.tenant.id,
           customer_id:    instalment.order.customer_id,
@@ -485,7 +485,7 @@ export const ordersRouter = createTRPCRouter({
       await ctx.supa.from("orders").update({
         payment_status: newStatus,
         updated_at: new Date().toISOString(),
-      }).eq("id", input.orderId);
+      }).eq("id", input.orderId).eq("tenant_id", ctx.tenant.id);
 
       // Update customer credit balance if they had a debt
       if (order.customer_id) {
@@ -497,7 +497,7 @@ export const ordersRouter = createTRPCRouter({
         if (customer && Number(customer.credit_balance) > 0) {
           const balanceBefore = Number(customer.credit_balance);
           const balanceAfter  = Math.max(0, balanceBefore - totalPaid);
-          await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", order.customer_id);
+          await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", order.customer_id).eq("tenant_id", ctx.tenant.id);
           await ctx.supa.from("customer_account_history").insert({
             tenant_id:      ctx.tenant.id,
             customer_id:    order.customer_id,
@@ -541,6 +541,7 @@ export const ordersRouter = createTRPCRouter({
         .from("orders")
         .select("total, subtotal, discount")
         .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id)
         .single();
       if (!order) throw new TRPCError({ code: "NOT_FOUND" });
 
@@ -560,9 +561,9 @@ export const ordersRouter = createTRPCRouter({
         discount_type: coupon.type === "percent" ? "percent" : "flat",
         total:         newTotal,
         updated_at:    new Date().toISOString(),
-      }).eq("id", input.orderId);
+      }).eq("id", input.orderId).eq("tenant_id", ctx.tenant.id);
 
-      await ctx.supa.from("coupons").update({ uses_count: (coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id);
+      await ctx.supa.from("coupons").update({ uses_count: (coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id).eq("tenant_id", ctx.tenant.id);
 
       return { ok: true, discountAmount: discountAmt, newTotal };
     }),
@@ -685,7 +686,7 @@ async function _createOrder(ctx: any, opts: {
         .single();
       const balanceBefore = Number(customer?.credit_balance ?? 0);
       const balanceAfter  = balanceBefore + totalInstalment;
-      await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", opts.customerId);
+      await ctx.supa.from("customers").update({ credit_balance: balanceAfter }).eq("id", opts.customerId).eq("tenant_id", ctx.tenant.id);
       await ctx.supa.from("customer_account_history").insert({
         tenant_id:      ctx.tenant.id,
         customer_id:    opts.customerId,
@@ -709,7 +710,7 @@ async function _createOrder(ctx: any, opts: {
       .single();
     if (!product?.track_stock) continue;
     const newStock = Math.max(0, (product.stock ?? 0) - item.quantity);
-    await ctx.supa.from("products").update({ stock: newStock, updated_at: new Date().toISOString() }).eq("id", item.productId);
+    await ctx.supa.from("products").update({ stock: newStock, updated_at: new Date().toISOString() }).eq("id", item.productId).eq("tenant_id", ctx.tenant.id);
     await ctx.supa.from("inventory_movements").insert({
       tenant_id:    ctx.tenant.id,
       product_id:   item.productId,
@@ -731,7 +732,7 @@ async function _createOrder(ctx: any, opts: {
       .eq("active", true)
       .single();
     if (coupon) {
-      await ctx.supa.from("coupons").update({ uses_count: (coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id);
+      await ctx.supa.from("coupons").update({ uses_count: (coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id).eq("tenant_id", ctx.tenant.id);
     }
   }
 
@@ -746,7 +747,7 @@ async function _createOrder(ctx: any, opts: {
       await ctx.supa.from("customers").update({
         total_orders: (customer.total_orders ?? 0) + 1,
         total_spent:  (Number(customer.total_spent ?? 0) + totalPaid),
-      }).eq("id", opts.customerId);
+      }).eq("id", opts.customerId).eq("tenant_id", ctx.tenant.id);
     }
   }
 

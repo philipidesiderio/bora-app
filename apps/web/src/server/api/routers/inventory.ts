@@ -77,7 +77,8 @@ export const inventoryRouter = createTRPCRouter({
       const { error: updateError } = await ctx.supa
         .from("products")
         .update({ stock: after, updated_at: new Date().toISOString() })
-        .eq("id", input.productId);
+        .eq("id", input.productId)
+        .eq("tenant_id", ctx.tenant.id);
 
       if (updateError) throw new Error(updateError.message);
 
