@@ -85,11 +85,11 @@ export default function PedidosPage() {
       </div>
 
       {/* Filter pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4">
+      <div className="flex flex-wrap gap-2 pb-1">
         {TABS.map(t => (
           <button key={t.value} onClick={() => setTab(t.value)}
             className={cn(
-              "flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all border",
+              "px-3.5 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border",
               tab === t.value ? "bg-primary text-white border-primary shadow-sm" : "bg-card border-border text-muted-foreground"
             )}>
             {t.label}

@@ -636,7 +636,7 @@ async function _createOrder(ctx: any, opts: {
   if (orderErr) throw new Error(orderErr.message);
 
   // Insert order items (with cost_price for COGS)
-  await ctx.supa.from("order_items").insert(
+  const { error: itemsErr } = await ctx.supa.from("order_items").insert(
     opts.items.map(item => ({
       order_id:   order.id,
       product_id: item.productId ?? null,
@@ -649,9 +649,10 @@ async function _createOrder(ctx: any, opts: {
       notes:      item.notes ?? null,
     }))
   );
+  if (itemsErr) throw new Error(`Falha ao salvar itens: ${itemsErr.message}`);
 
   // Insert payment records
-  await ctx.supa.from("order_payments").insert(
+  const { error: paymentsErr } = await ctx.supa.from("order_payments").insert(
     paymentsList.map(p => ({
       tenant_id: ctx.tenant.id,
       order_id:  order.id,
@@ -660,10 +661,11 @@ async function _createOrder(ctx: any, opts: {
       note:      p.note ?? null,
     }))
   );
+  if (paymentsErr) throw new Error(`Falha ao salvar pagamentos: ${paymentsErr.message}`);
 
   // Insert instalments (fiado/parcelamento)
   if (opts.instalments.length > 0) {
-    await ctx.supa.from("order_instalments").insert(
+    const { error: instErr } = await ctx.supa.from("order_instalments").insert(
       opts.instalments.map(inst => ({
         tenant_id: ctx.tenant.id,
         order_id:  order.id,
@@ -672,6 +674,7 @@ async function _createOrder(ctx: any, opts: {
         paid:      false,
       }))
     );
+    if (instErr) throw new Error(`Falha ao salvar parcelas: ${instErr.message}`);
 
     // Update customer credit_balance if fiado
     if (opts.customerId) {
