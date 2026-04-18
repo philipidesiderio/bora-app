@@ -25,7 +25,7 @@ const PERIODS: { value: Period; label: string }[] = [
 ];
 
 const METHOD_LABELS: Record<string, string> = {
-  pix: "PIX", cash: "Dinheiro", credit: "Crédito", debit: "Débito", account: "Fiado", voucher: "Voucher",
+  pix: "PIX", cash: "Dinheiro", credit: "Crédito", debit: "Débito", account: "Em aberto", voucher: "Voucher",
 };
 
 export default function RelatoriosPage() {

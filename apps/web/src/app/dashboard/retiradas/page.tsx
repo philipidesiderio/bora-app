@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  PackageCheck, Search, Check, X, Pencil, Mic, Paperclip, Bell,
+  PackageCheck, Search, Check, X, Mic, Paperclip,
   CreditCard, Banknote, Wifi, Receipt, Plus, ChevronDown, ChevronUp,
-  AlertTriangle, Wrench, User
+  AlertTriangle, Wrench, User, ChefHat
 } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
@@ -46,11 +46,6 @@ export default function RetiradasPage() {
   const [cancelOrder, setCancelOrder]   = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
-  // Edit modal
-  const [editOrder, setEditOrder]       = useState<any | null>(null);
-  const [editReason, setEditReason]     = useState("");
-  const [editObs, setEditObs]           = useState("");
-
   // Personalizar modal
   const [customOrder, setCustomOrder]   = useState<any | null>(null);
   const [customObs, setCustomObs]       = useState("");
@@ -62,7 +57,7 @@ export default function RetiradasPage() {
 
   const { data: orders = [], isLoading } = api.orders.list.useQuery({
     limit: 100,
-    status: "ready",
+    statuses: ["confirmed", "preparing", "ready"],
   });
 
   const filtered = orders.filter((o: any) => {
@@ -85,8 +80,8 @@ export default function RetiradasPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  const editOrderMut = api.orders.update.useMutation({
-    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pedido editado!"); setEditOrder(null); setEditReason(""); setEditObs(""); },
+  const markReadyMut = api.orders.markReady.useMutation({
+    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pedido pronto para retirada!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -176,29 +171,29 @@ export default function RetiradasPage() {
             const payStatus = o.paymentStatus ?? o.payment_status ?? "unpaid";
             const paid      = isPaid(o);
             const isExpanded = expanded === o.id;
-            const isEdited  = o.editedAt || o.edited_at;
+            const status    = o.status ?? "confirmed";
+            const statusLabel =
+              status === "ready"     ? "Pronto"      :
+              status === "preparing" ? "Em preparo"  :
+                                       "Confirmado";
+            const statusClass =
+              status === "ready"     ? "bg-emerald-100 text-emerald-700" :
+              status === "preparing" ? "bg-blue-100 text-blue-700"       :
+                                       "bg-amber-100 text-amber-700";
 
             return (
               <div
                 key={o.id}
-                className={cn(
-                  "bg-card border rounded-2xl overflow-hidden",
-                  isEdited ? "border-amber-300" : "border-border"
-                )}
+                className="bg-card border border-border rounded-2xl overflow-hidden"
               >
-                {/* Edited alert */}
-                {isEdited && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200">
-                    <Bell className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="text-xs font-semibold text-amber-700">Pedido editado — verifique as alterações</span>
-                  </div>
-                )}
-
                 {/* Main info */}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-bold">#{o.number}</span>
+                      <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", statusClass)}>
+                        {statusLabel}
+                      </span>
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full",
                         payStatus === "paid"    ? "bg-emerald-100 text-emerald-700" :
@@ -285,13 +280,20 @@ export default function RetiradasPage() {
                     <X className="w-3.5 h-3.5" /> Cancelar
                   </button>
 
-                  {/* Editar */}
-                  <button
-                    onClick={() => { setEditOrder(o); setEditReason(""); setEditObs(o.notes ?? ""); }}
-                    className="py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-amber-100 transition-colors"
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Editar
-                  </button>
+                  {/* Marcar pronto (se ainda não estiver) */}
+                  {status !== "ready" ? (
+                    <button
+                      onClick={() => markReadyMut.mutate({ orderId: o.id } as any)}
+                      disabled={markReadyMut.isPending}
+                      className="py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      <ChefHat className="w-3.5 h-3.5" /> Marcar pronto
+                    </button>
+                  ) : (
+                    <div className="py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" /> Pronto
+                    </div>
+                  )}
 
                   {/* Personalizar */}
                   <button
@@ -482,53 +484,6 @@ export default function RetiradasPage() {
               onClick={() => cancelOrderMut.mutate({ orderId: cancelOrder.id, reason: cancelReason } as any)}
             >
               {cancelOrderMut.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          MODAL: Editar
-      ══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={!!editOrder} onOpenChange={v => !v && setEditOrder(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-amber-500" /> Editar Pedido #{editOrder?.number}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Motivo da edição *</label>
-              <Input
-                value={editReason}
-                onChange={e => setEditReason(e.target.value)}
-                placeholder="Por que está editando?"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Observações</label>
-              <Textarea
-                value={editObs}
-                onChange={e => setEditObs(e.target.value)}
-                placeholder="Observações do pedido..."
-                rows={3}
-              />
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-              <Bell className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
-                O pedido ficará marcado em vermelho e um alerta será exibido no sininho.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOrder(null)}>Cancelar</Button>
-            <Button
-              disabled={!editReason || editOrderMut.isPending}
-              onClick={() => editOrderMut.mutate({ orderId: editOrder.id, notes: editObs, editReason } as any)}
-            >
-              {editOrderMut.isPending ? "Salvando..." : "Salvar Edição"}
             </Button>
           </DialogFooter>
         </DialogContent>

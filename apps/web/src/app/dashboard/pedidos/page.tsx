@@ -27,7 +27,7 @@ const PAY_STATUS_COLORS: Record<string, string> = {
 };
 
 const PAY_STATUS_LABELS: Record<string, string> = {
-  paid: "Pago", partial: "Parcial", unpaid: "Fiado", void: "Anulado", refunded: "Reembolsado",
+  paid: "Pago", partial: "Parcial", unpaid: "Em aberto", void: "Anulado", refunded: "Reembolsado",
 };
 
 const PAY_LABELS: Record<string, string> = { pix: "PIX", cash: "Dinheiro", credit: "Crédito", debit: "Débito", account: "Em aberto", voucher: "Voucher" };
@@ -36,7 +36,7 @@ const CHANNEL_LABELS: Record<string, string> = { pdv: "PDV", online: "Online", w
 const TABS = [
   { value:"all",    label:"Todos"    },
   { value:"paid",   label:"Pagos"    },
-  { value:"unpaid", label:"Fiado"    },
+  { value:"unpaid", label:"Em aberto" },
   { value:"partial",label:"Parcial"  },
   { value:"void",   label:"Anulados" },
 ];

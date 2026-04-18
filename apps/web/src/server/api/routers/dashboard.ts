@@ -224,7 +224,7 @@ export const dashboardRouter = createTRPCRouter({
       debit:   "Cartão Débito",
       voucher: "Voucher",
       mixed:   "Misto",
-      account: "Fiado",
+      account: "Em aberto",
     };
     return Array.from(map.entries()).map(([method, value]) => ({
       method,

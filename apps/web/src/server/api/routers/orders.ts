@@ -73,6 +73,8 @@ export const ordersRouter = createTRPCRouter({
       notes:       z.string().optional(),
       channel:     z.enum(["pdv", "online", "whatsapp"]).default("pdv"),
       registerId:  z.string().optional(),
+      deliveryFee:     z.number().min(0).default(0),
+      deliveryAddress: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       return _createOrder(ctx, {
@@ -86,6 +88,8 @@ export const ordersRouter = createTRPCRouter({
         notes:        input.notes,
         channel:      input.channel,
         registerId:   input.registerId,
+        deliveryFee:     input.deliveryFee,
+        deliveryAddress: input.deliveryAddress,
         autoPayFull:  false,
       });
     }),
@@ -96,6 +100,7 @@ export const ordersRouter = createTRPCRouter({
       page:          z.number().default(1),
       limit:         z.number().default(20),
       status:        z.string().optional(),
+      statuses:      z.array(z.string()).optional(),
       paymentStatus: z.string().optional(),
       customerId:    z.string().optional(),
       dateFrom:      z.string().optional(),
@@ -109,15 +114,29 @@ export const ordersRouter = createTRPCRouter({
         .order("created_at", { ascending: false })
         .range((input.page - 1) * input.limit, input.page * input.limit - 1);
 
-      if (input.status)        query = query.eq("status", input.status);
-      if (input.paymentStatus) query = query.eq("payment_status", input.paymentStatus);
-      if (input.customerId)    query = query.eq("customer_id", input.customerId);
-      if (input.dateFrom)      query = query.gte("created_at", input.dateFrom);
-      if (input.dateTo)        query = query.lte("created_at", input.dateTo);
+      if (input.status)         query = query.eq("status", input.status);
+      if (input.statuses?.length) query = query.in("status", input.statuses);
+      if (input.paymentStatus)  query = query.eq("payment_status", input.paymentStatus);
+      if (input.customerId)     query = query.eq("customer_id", input.customerId);
+      if (input.dateFrom)       query = query.gte("created_at", input.dateFrom);
+      if (input.dateTo)         query = query.lte("created_at", input.dateTo);
 
       const { data, error } = await query;
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
-      return data ?? [];
+
+      // Attach customer via separate query (avoid embedded join FK dependency)
+      const rows = data ?? [];
+      const customerIds = [...new Set(rows.map((o: any) => o.customer_id).filter(Boolean))] as string[];
+      let customersMap: Record<string, any> = {};
+      if (customerIds.length) {
+        const { data: customers } = await ctx.supa
+          .from("customers")
+          .select("id, name, phone")
+          .in("id", customerIds)
+          .eq("tenant_id", ctx.tenant.id);
+        customersMap = Object.fromEntries((customers ?? []).map((c: any) => [c.id, c]));
+      }
+      return rows.map((o: any) => ({ ...o, customer: o.customer_id ? customersMap[o.customer_id] ?? null : null }));
     }),
 
   // ─── Get single order ────────────────────────────────────────────────────
@@ -381,6 +400,19 @@ export const ordersRouter = createTRPCRouter({
       return { ok: true };
     }),
 
+  // ─── Mark order as ready for pickup ──────────────────────────────────────
+  markReady: tenantProcedure
+    .input(z.object({ orderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { error } = await ctx.supa
+        .from("orders")
+        .update({ status: "ready", updated_at: new Date().toISOString() })
+        .eq("id", input.orderId)
+        .eq("tenant_id", ctx.tenant.id);
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      return { ok: true };
+    }),
+
   // ─── Mark order as delivered ─────────────────────────────────────────────
   markDelivered: tenantProcedure
     .input(z.object({ orderId: z.string() }))
@@ -582,11 +614,15 @@ async function _createOrder(ctx: any, opts: {
   notes?:       string;
   channel?:     string;
   registerId?:  string;
+  deliveryFee?: number;
+  deliveryAddress?: string;
   autoPayFull:  boolean;
 }) {
-  const subtotal = opts.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const discount = opts.discount ?? 0;
-  const total    = Math.max(0, subtotal - discount);
+  const itemsSubtotal = opts.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const deliveryFee   = opts.deliveryFee ?? 0;
+  const subtotal      = itemsSubtotal + deliveryFee;
+  const discount      = opts.discount ?? 0;
+  const total         = Math.max(0, subtotal - discount);
 
   // Get next order number
   const { count } = await ctx.supa
@@ -631,6 +667,9 @@ async function _createOrder(ctx: any, opts: {
       change_amount:  change,
       notes:          opts.notes ?? null,
       register_id:    opts.registerId ?? null,
+      metadata:       (deliveryFee > 0 || opts.deliveryAddress)
+        ? { delivery: { fee: deliveryFee, address: opts.deliveryAddress ?? null } }
+        : null,
     })
     .select()
     .single();
@@ -695,7 +734,7 @@ async function _createOrder(ctx: any, opts: {
         amount:         totalInstalment,
         balance_before: balanceBefore,
         balance_after:  balanceAfter,
-        description:    `Fiado — Pedido #${number}`,
+        description:    `Em aberto — Pedido #${number}`,
       });
     }
   }
@@ -734,6 +773,74 @@ async function _createOrder(ctx: any, opts: {
     if (coupon) {
       await ctx.supa.from("coupons").update({ uses_count: (coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id).eq("tenant_id", ctx.tenant.id);
     }
+  }
+
+  // ── Caixa: register_history rows for each received payment (ignore "account" = pendente)
+  const cashOnlyMethods = new Set(["cash"]);
+  const receivedPayments = paymentsList.filter(p => p.method !== "account" && p.amount > 0);
+  if (receivedPayments.length > 0) {
+    // Find an open register for this tenant (prefer the one explicitly passed)
+    let openRegister: any = null;
+    if (opts.registerId) {
+      const { data } = await ctx.supa
+        .from("registers")
+        .select("id, balance, status")
+        .eq("id", opts.registerId)
+        .eq("tenant_id", ctx.tenant.id)
+        .eq("status", "opened")
+        .maybeSingle();
+      openRegister = data;
+    }
+    if (!openRegister) {
+      const { data } = await ctx.supa
+        .from("registers")
+        .select("id, balance, status")
+        .eq("tenant_id", ctx.tenant.id)
+        .eq("status", "opened")
+        .limit(1)
+        .maybeSingle();
+      openRegister = data;
+    }
+
+    if (openRegister) {
+      let runningBalance = Number(openRegister.balance ?? 0);
+      for (const p of receivedPayments) {
+        const before = runningBalance;
+        const after  = cashOnlyMethods.has(p.method) ? before + p.amount : before;
+        runningBalance = after;
+        await ctx.supa.from("register_history").insert({
+          tenant_id:        ctx.tenant.id,
+          register_id:      openRegister.id,
+          action:           "order-payment",
+          value:            p.amount,
+          balance_before:   before,
+          balance_after:    after,
+          transaction_type: "positive",
+          description:      `Venda · Pedido #${number} · ${p.method}`,
+          author_id:        ctx.session.user.id,
+        });
+      }
+      // Update register balance (cash only bumped)
+      await ctx.supa.from("registers").update({
+        balance:    runningBalance,
+        updated_at: new Date().toISOString(),
+      }).eq("id", openRegister.id);
+    }
+  }
+
+  // ── Financeiro: create a paid income transaction for the received amount
+  if (totalPaid > 0) {
+    await ctx.supa.from("transactions").insert({
+      id:          crypto.randomUUID(),
+      tenant_id:   ctx.tenant.id,
+      type:        "income",
+      category:    "sales",
+      description: `Venda Pedido #${number}`,
+      amount:      totalPaid,
+      status:      "paid",
+      paid_at:     new Date().toISOString(),
+      reference:   `order:${order.id}`,
+    });
   }
 
   // Update customer lifetime spend

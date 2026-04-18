@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Search, Plus, Minus, Check, CreditCard, Banknote, Wifi, Receipt,
   User, FileText, UserPlus, Package, Trash2, X, ChevronDown, ChevronUp,
-  Clock, Wrench, ShoppingCart, Tag
+  Clock, Wrench, ShoppingCart, Tag, Truck, MapPin
 } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ const PAYMENT_METHODS = [
   { value: "cash",    label: "Dinheiro",  icon: Banknote,   color: "bg-blue-50 border-blue-400 text-blue-700" },
   { value: "credit",  label: "Crédito",   icon: CreditCard, color: "bg-purple-50 border-purple-400 text-purple-700" },
   { value: "debit",   label: "Débito",    icon: CreditCard, color: "bg-amber-50 border-amber-400 text-amber-700" },
-  { value: "account", label: "Em aberto", icon: Receipt,    color: "bg-rose-50 border-rose-400 text-rose-700" },
+  { value: "account", label: "Deixar em aberto", icon: Receipt,    color: "bg-rose-50 border-rose-400 text-rose-700" },
 ];
 
 function parseMoney(v: string) {
@@ -82,6 +82,14 @@ export function PDVScreen() {
   const [customItemObs, setCustomItemObs]             = useState("");
   const [orderType, setOrderType]                     = useState<"sale" | "budget">("sale");
 
+  // Dialog "Falta pagamento"
+  const [missingDialog, setMissingDialog] = useState<{ missing: number } | null>(null);
+
+  // Entrega (taxa + endereço)
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [deliveryFee, setDeliveryFee]           = useState("");
+  const [deliveryAddress, setDeliveryAddress]   = useState("");
+
   // Queries
   const { data: products   = [] } = api.products.list.useQuery({ search, limit: 100 });
   const { data: categories = [] } = api.products.listCategories.useQuery();
@@ -117,7 +125,8 @@ export function PDVScreen() {
   const discountValue = discountType === "percent"
     ? subtotal * (Number(discount) / 100)
     : Number(discount) || 0;
-  const total         = Math.max(0, subtotal - discountValue);
+  const deliveryFeeNum = parseMoney(deliveryFee);
+  const total         = Math.max(0, subtotal - discountValue + deliveryFeeNum);
   const cartCount     = cart.reduce((s, i) => s + i.qty, 0);
 
   const paidSoFar = payments.reduce((s, p) => s + parseMoney(p.amount), 0);
@@ -163,6 +172,8 @@ export function PDVScreen() {
     setCustomItemObs("");
     setOrderType("sale");
     setCartOpen(false);
+    setDeliveryFee("");
+    setDeliveryAddress("");
   };
 
   // ─── Pagamentos múltiplos ──────────────────────────────────────────────────
@@ -184,27 +195,45 @@ export function PDVScreen() {
 
   // ─── Confirmar venda ───────────────────────────────────────────────────────
 
-  const confirmSale = () => {
-    if (!cart.length) return;
+  type PaymentMethodKey = "pix" | "cash" | "credit" | "debit" | "account" | "voucher";
 
-    // Build payment list — if amount is empty, use remaining or full total
-    const paymentList = payments.map((pay, idx) => {
+  function buildPaymentList(extra?: { method: PaymentMethodKey; amount: number }) {
+    // Amount auto-fill: account-row with 0 → take remaining (pending balance)
+    const list = payments.map((pay) => {
       const amt = parseMoney(pay.amount);
-      const effectiveAmt = amt > 0 ? amt : (idx === payments.length - 1 ? remaining || total : 0);
+      let effective = amt;
+      if (amt === 0 && pay.method === "account") effective = remaining; // "em aberto" = pendente
       return {
-        method: pay.method as "pix" | "cash" | "credit" | "debit" | "account" | "voucher",
-        amount: effectiveAmt,
+        method: pay.method as PaymentMethodKey,
+        amount: effective,
         note: pay.method === "credit" && pay.installments > 1 ? `${pay.installments}x` : undefined,
       };
     }).filter(p => p.amount > 0);
 
-    if (!paymentList.length) {
-      // Default: pay full with first method
-      paymentList.push({
-        method: payments[0]!.method as any,
+    // If only one method row with no amount, fill with total
+    if (!list.length && payments[0]) {
+      list.push({
+        method: payments[0].method as PaymentMethodKey,
         amount: total,
-        note: undefined,
+        note: payments[0].method === "credit" && payments[0].installments > 1 ? `${payments[0].installments}x` : undefined,
       });
+    }
+
+    if (extra) list.push({ method: extra.method, amount: extra.amount, note: undefined });
+    return list;
+  }
+
+  const confirmSale = (extraPayment?: { method: PaymentMethodKey; amount: number }) => {
+    if (!cart.length) return;
+
+    const paymentList = buildPaymentList(extraPayment);
+    const paid = paymentList.reduce((s, p) => s + p.amount, 0);
+    const missing = total - paid;
+
+    // Orçamento (budget) pode seguir sem cobertura total
+    if (orderType === "sale" && missing > 0.01 && !extraPayment) {
+      setMissingDialog({ missing });
+      return;
     }
 
     createOrderMut.mutate({
@@ -223,7 +252,16 @@ export function PDVScreen() {
       notes: deliveryType === "custom" ? customItemObs : undefined,
       channel: "pdv",
       customerId: selectedClientId || undefined,
+      deliveryFee: deliveryFeeNum > 0 ? deliveryFeeNum : 0,
+      deliveryAddress: deliveryAddress || undefined,
+    }, {
+      onSuccess: () => setMissingDialog(null),
     });
+  };
+
+  const coverMissingWith = (method: PaymentMethodKey) => {
+    if (!missingDialog) return;
+    confirmSale({ method, amount: missingDialog.missing });
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -471,6 +509,14 @@ export function PDVScreen() {
                   )}
                 </div>
 
+                {/* Taxa de entrega */}
+                {deliveryFeeNum > 0 && (
+                  <div className="flex justify-between text-xs text-amber-700">
+                    <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> Taxa de entrega</span>
+                    <span className="font-semibold">+{formatCurrency(deliveryFeeNum)}</span>
+                  </div>
+                )}
+
                 {/* Total */}
                 <div className="flex justify-between font-bold text-base pt-1.5 border-t border-border/50">
                   <span>Total</span>
@@ -507,6 +553,22 @@ export function PDVScreen() {
               </button>
             ))}
           </div>
+
+          {/* Entrega (taxa + endereço) */}
+          <button
+            onClick={() => setShowDeliveryDialog(true)}
+            className={cn(
+              "w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 border transition-all",
+              (deliveryFeeNum > 0 || deliveryAddress)
+                ? "bg-amber-50 border-amber-300 text-amber-700"
+                : "bg-muted/40 border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            {(deliveryFeeNum > 0 || deliveryAddress)
+              ? `Entrega${deliveryFeeNum > 0 ? ` · ${formatCurrency(deliveryFeeNum)}` : ""}${deliveryAddress ? " · endereço salvo" : ""}`
+              : "Adicionar entrega"}
+          </button>
 
           {/* Botões finalizar */}
           <div className="flex gap-2">
@@ -719,6 +781,12 @@ export function PDVScreen() {
                   <span>Desconto</span><span>-{formatCurrency(discountValue)}</span>
                 </div>
               )}
+              {deliveryFeeNum > 0 && (
+                <div className="flex justify-between text-sm text-amber-700">
+                  <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> Entrega</span>
+                  <span>+{formatCurrency(deliveryFeeNum)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg border-t border-border/50 pt-1.5">
                 <span>Total</span>
                 <span className="text-primary">{formatCurrency(total)}</span>
@@ -864,7 +932,7 @@ export function PDVScreen() {
                 Cancelar
               </Button>
               <Button
-                onClick={confirmSale}
+                onClick={() => confirmSale()}
                 disabled={createOrderMut.isPending || !cart.length}
                 className={cn("flex-1", orderType === "budget" ? "bg-blue-500 hover:bg-blue-600" : "")}
               >
@@ -877,6 +945,122 @@ export function PDVScreen() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Falta pagamento
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!missingDialog} onOpenChange={v => !v && setMissingDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <Receipt className="w-5 h-5" /> Falta pagamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+              <p className="text-sm text-rose-700 font-medium">
+                Faltam <span className="font-bold text-lg">{formatCurrency(missingDialog?.missing ?? 0)}</span> para cobrir o total do pedido.
+              </p>
+              <p className="text-xs text-rose-600/80 mt-1">
+                Como deseja receber esse valor?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {PAYMENT_METHODS.filter(m => m.value !== "account").map(m => {
+                const MIcon = m.icon;
+                return (
+                  <button
+                    key={m.value}
+                    onClick={() => coverMissingWith(m.value as PaymentMethodKey)}
+                    disabled={createOrderMut.isPending}
+                    className={cn(
+                      "py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50",
+                      m.color
+                    )}
+                  >
+                    <MIcon className="w-4 h-4" /> {m.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => coverMissingWith("account")}
+              disabled={createOrderMut.isPending}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-rose-400 bg-rose-50/50 text-rose-700 text-sm font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors disabled:opacity-50"
+            >
+              <Receipt className="w-4 h-4" />
+              Deixar {formatCurrency(missingDialog?.missing ?? 0)} em aberto (pendente)
+            </button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMissingDialog(null)} className="w-full">
+              Voltar e ajustar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Entrega
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={showDeliveryDialog} onOpenChange={setShowDeliveryDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-amber-600" /> Entrega
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-muted-foreground" /> Taxa de entrega (opcional)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={deliveryFee}
+                  onChange={e => setDeliveryFee(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Se deixar vazio, nenhuma taxa é cobrada.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> Endereço de entrega
+              </label>
+              <Textarea
+                value={deliveryAddress}
+                onChange={e => setDeliveryAddress(e.target.value)}
+                placeholder="Rua, número, bairro, cidade, referência..."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setDeliveryFee(""); setDeliveryAddress(""); setShowDeliveryDialog(false); }}
+            >
+              Remover entrega
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => setShowDeliveryDialog(false)}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
