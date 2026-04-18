@@ -24,8 +24,23 @@ export async function POST(req: NextRequest) {
         asResponse: true,
       });
     } catch (err: any) {
-      const msg = err?.message ?? err?.body?.message ?? "Falha ao criar usuário";
+      const raw = String(err?.message ?? "");
       console.error("[register][signup-throw]", err);
+
+      // Supavisor/pooler rejeita auth com "Tenant or user not found" — DATABASE_URL inválido
+      if (/tenant or user not found|sasl|password authentication failed|ENOTFOUND|ECONNREFUSED/i.test(raw)) {
+        return NextResponse.json(
+          {
+            error: "Banco de dados indisponível. Contate o administrador (config DATABASE_URL).",
+            stage,
+            hint:  "DATABASE_URL com senha inválida no Vercel",
+            raw,
+          },
+          { status: 503 },
+        );
+      }
+
+      const msg = raw || err?.body?.message || "Falha ao criar usuário";
       return NextResponse.json({ error: msg, stage }, { status: 400 });
     }
 
@@ -104,10 +119,24 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (err: any) {
+    const raw = String(err?.message ?? "");
     console.error("[register][unhandled]", stage, err);
+
+    if (/tenant or user not found|sasl|password authentication failed|ENOTFOUND|ECONNREFUSED/i.test(raw)) {
+      return NextResponse.json(
+        {
+          error: "Banco de dados indisponível. Contate o administrador (config DATABASE_URL).",
+          stage,
+          hint:  "DATABASE_URL com senha inválida no Vercel",
+          raw,
+        },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json(
       {
-        error: err?.message ?? "Erro interno ao criar conta",
+        error: raw || "Erro interno ao criar conta",
         stage,
         name:  err?.name,
       },
