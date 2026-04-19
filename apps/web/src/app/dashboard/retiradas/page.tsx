@@ -63,6 +63,12 @@ export default function RetiradasPage() {
     statuses: ["confirmed", "preparing", "ready"],
   });
 
+  // Histórico: pedidos concluídos (entregues) ou cancelados
+  const { data: history = [] } = api.orders.list.useQuery({
+    limit: 50,
+    statuses: ["delivered", "cancelled"],
+  });
+
   const filtered = orders.filter((o: any) => {
     if (!search) return true;
     const s = search.toLowerCase();
@@ -337,6 +343,72 @@ export default function RetiradasPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          HISTÓRICO (entregues / cancelados)
+      ══════════════════════════════════════════════════════════════════════ */}
+      {history.length > 0 && (
+        <div className="pt-4 mt-6 border-t border-border">
+          <div className="mb-3">
+            <h2 className="font-heading text-lg font-bold flex items-center gap-2">
+              <PackageCheck className="w-5 h-5 text-muted-foreground" /> Histórico
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Últimos pedidos concluídos e cancelados
+            </p>
+          </div>
+          <div className="space-y-2">
+            {history.map((o: any) => {
+              const delivered = o.status === "delivered";
+              const payStatus = o.paymentStatus ?? o.payment_status ?? "unpaid";
+              return (
+                <div
+                  key={o.id}
+                  className="bg-card border border-border rounded-xl px-3 py-2.5 opacity-90"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                        <span className="font-mono font-bold text-sm">#{o.number}</span>
+                        <span className={cn(
+                          "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                          delivered ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                        )}>
+                          {delivered ? "Entregue" : "Cancelado"}
+                        </span>
+                        <span className={cn(
+                          "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                          payStatus === "paid"    ? "bg-emerald-100 text-emerald-700" :
+                          payStatus === "partial" ? "bg-amber-100 text-amber-700" :
+                                                    "bg-rose-100 text-rose-700"
+                        )}>
+                          {payStatus === "paid" ? "Pago" : payStatus === "partial" ? "Parcial" : "Em aberto"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {o.customer?.name ?? "Sem cliente"}
+                        {" · "}
+                        {(o.items ?? []).length} {(o.items ?? []).length === 1 ? "item" : "itens"}
+                        {o.updated_at && (
+                          <>
+                            {" · "}
+                            {new Date(o.updated_at).toLocaleString("pt-BR", {
+                              day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                            })}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-bold text-sm text-primary shrink-0">
+                      {formatCurrency(Number(o.total))}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
