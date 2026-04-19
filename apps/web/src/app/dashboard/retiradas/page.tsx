@@ -41,6 +41,9 @@ export default function RetiradasPage() {
   // Payment modal
   const [paymentOrder, setPaymentOrder] = useState<any | null>(null);
   const [payments, setPayments]         = useState<PaymentEntry[]>([{ method: "pix", amount: "", installments: 1 }]);
+  // Quando o usuário clicou em "Entregue" mas havia valor em aberto,
+  // abre o modal de pagamento e, após quitar, marca como entregue automaticamente.
+  const [deliverAfterPay, setDeliverAfterPay] = useState(false);
 
   // Cancel modal
   const [cancelOrder, setCancelOrder]   = useState<any | null>(null);
@@ -91,7 +94,17 @@ export default function RetiradasPage() {
   });
 
   const payOrderMut = api.orders.pay.useMutation({
-    onSuccess: () => { utils.orders.list.invalidate(); toast.success("Pagamento registrado!"); setPaymentOrder(null); setPayments([{ method: "pix", amount: "", installments: 1 }]); },
+    onSuccess: async () => {
+      await utils.orders.list.invalidate();
+      toast.success("Pagamento registrado!");
+      // Se o usuário tinha pedido entregar mas faltava pagar, entrega agora.
+      if (deliverAfterPay && paymentOrder) {
+        markDeliveredMut.mutate({ orderId: paymentOrder.id } as any);
+      }
+      setPaymentOrder(null);
+      setPayments([{ method: "pix", amount: "", installments: 1 }]);
+      setDeliverAfterPay(false);
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -127,7 +140,28 @@ export default function RetiradasPage() {
     } as any);
   }
 
-  const isPaid = (o: any) => ["paid", "partial"].includes(o.paymentStatus ?? o.payment_status ?? "");
+  const isPaid = (o: any) => (o.paymentStatus ?? o.payment_status ?? "") === "paid";
+
+  // Calcula valor restante (ignorando pagamentos "account" = em aberto)
+  const remainingOf = (o: any) => {
+    const paidSum = ((o?.payments ?? []) as any[])
+      .filter((p: any) => p.method !== "account")
+      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    return Math.max(0, Number(o?.total ?? 0) - paidSum);
+  };
+
+  // Handler do botão Entregue — se faltar pagar, abre modal de pagamento com alerta
+  function handleDeliverClick(o: any) {
+    if (isPaid(o)) {
+      markDeliveredMut.mutate({ orderId: o.id } as any);
+      return;
+    }
+    const falta = remainingOf(o);
+    toast.error(`Pedido em aberto — falta ${formatCurrency(falta)}. Pague o restante primeiro.`);
+    setDeliverAfterPay(true);
+    setPaymentOrder(o);
+    setPayments([{ method: "pix", amount: falta.toFixed(2), installments: 1 }]);
+  }
 
   return (
     <div className="space-y-4 pb-28 md:pb-6">
@@ -255,18 +289,15 @@ export default function RetiradasPage() {
                     </button>
                   )}
 
-                  {/* Entregue */}
+                  {/* Entregue — se não pago, abre modal de pagamento + marca ao quitar */}
                   <button
-                    onClick={() => {
-                      if (!paid) { toast.error("Confirme o pagamento antes de marcar como entregue."); return; }
-                      markDeliveredMut.mutate({ orderId: o.id } as any);
-                    }}
-                    disabled={markDeliveredMut.isPending}
+                    onClick={() => handleDeliverClick(o)}
+                    disabled={markDeliveredMut.isPending || payOrderMut.isPending}
                     className={cn(
                       "py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors",
                       paid
                         ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                        : "bg-amber-500 text-white hover:bg-amber-600"
                     )}
                   >
                     <Check className="w-3.5 h-3.5" /> Entregue
@@ -312,12 +343,26 @@ export default function RetiradasPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           MODAL: Pagamento
       ══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={!!paymentOrder} onOpenChange={v => !v && setPaymentOrder(null)}>
+      <Dialog open={!!paymentOrder} onOpenChange={v => { if (!v) { setPaymentOrder(null); setDeliverAfterPay(false); } }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Receber Pagamento — #{paymentOrder?.number}</DialogTitle>
+            <DialogTitle>
+              {deliverAfterPay ? "Pedido em aberto" : "Receber Pagamento"} — #{paymentOrder?.number}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Alerta: entrega bloqueada até quitar */}
+            {deliverAfterPay && paymentOrder && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold text-amber-800">Não é possível entregar — falta pagamento.</p>
+                  <p className="text-amber-700 mt-0.5">
+                    Cobre {formatCurrency(remainingOf(paymentOrder))} para liberar a entrega. Após confirmar o pagamento, o pedido será marcado como entregue automaticamente.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Resumo */}
             <div className="bg-muted/40 rounded-xl p-3">
               {paymentOrder?.customer?.name && (
@@ -449,9 +494,11 @@ export default function RetiradasPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentOrder(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setPaymentOrder(null); setDeliverAfterPay(false); }}>Cancelar</Button>
             <Button onClick={confirmPayment} disabled={payOrderMut.isPending}>
-              {payOrderMut.isPending ? "Registrando..." : "Confirmar Pagamento"}
+              {payOrderMut.isPending
+                ? "Registrando..."
+                : deliverAfterPay ? "Pagar e Entregar" : "Confirmar Pagamento"}
             </Button>
           </DialogFooter>
         </DialogContent>
