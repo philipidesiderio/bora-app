@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle } from "lucide-react";
+import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, CheckCircle2, Wallet } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -57,6 +57,11 @@ export default function PedidosPage() {
   // Refund modal
   const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
 
+  // Pay-remaining modal
+  const [payOrderId, setPayOrderId]       = useState<string | null>(null);
+  const [payMethod,  setPayMethod]        = useState<"pix"|"cash"|"credit"|"debit"|"voucher">("pix");
+  const [payAmount,  setPayAmount]        = useState("");
+
   const { data: orders = [], isLoading } = api.orders.list.useQuery({
     limit: 50,
     paymentStatus: tab !== "all" ? tab : undefined,
@@ -74,8 +79,45 @@ export default function PedidosPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  const voidableOrder = orders.find((o: any) => o.id === voidOrderId);
+  const payRemaining = api.orders.pay.useMutation({
+    onSuccess: () => {
+      toast.success("Pagamento registrado!");
+      setPayOrderId(null); setPayAmount(""); setPayMethod("pix");
+      invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const markDelivered = api.orders.markDelivered.useMutation({
+    onSuccess: () => { toast.success("Pedido entregue!"); invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const voidableOrder   = orders.find((o: any) => o.id === voidOrderId);
   const refundableOrder = orders.find((o: any) => o.id === refundOrderId);
+  const payableOrder    = orders.find((o: any) => o.id === payOrderId);
+
+  // Calcula o valor restante a pagar (ignora pagamentos "account" = em aberto)
+  function remainingFor(o: any): number {
+    const paid = ((o?.payments ?? []) as any[])
+      .filter(p => p.method !== "account")
+      .reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    return Math.max(0, Number(o?.total ?? 0) - paid);
+  }
+
+  function handleDeliver(o: any) {
+    if (o.payment_status !== "paid") {
+      toast.error(`Pedido em aberto — falta ${formatCurrency(remainingFor(o))}. Pague o restante antes de entregar.`);
+      return;
+    }
+    markDelivered.mutate({ orderId: o.id });
+  }
+
+  function openPayDialog(o: any) {
+    setPayOrderId(o.id);
+    setPayAmount(remainingFor(o).toFixed(2));
+    setPayMethod("pix");
+  }
 
   return (
     <div className="space-y-4 pb-28 md:pb-6">
@@ -191,16 +233,29 @@ export default function PedidosPage() {
 
                     {/* Actions */}
                     {payStatus !== "void" && payStatus !== "refunded" && (
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {payStatus !== "paid" && (
+                          <button onClick={() => openPayDialog(o)}
+                            className="flex-1 min-w-[120px] h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold flex items-center justify-center gap-1.5">
+                            <Wallet className="h-3.5 w-3.5" />Pagar restante
+                          </button>
+                        )}
+                        {o.status !== "delivered" && o.status !== "cancelled" && (
+                          <button onClick={() => handleDeliver(o)}
+                            disabled={markDelivered.isPending}
+                            className="flex-1 min-w-[120px] h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60">
+                            <CheckCircle2 className="h-3.5 w-3.5" />Entregue
+                          </button>
+                        )}
                         {canVoid && (
                           <button onClick={() => setVoidOrderId(o.id)}
-                            className="flex-1 h-9 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1.5">
+                            className="flex-1 min-w-[120px] h-9 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1.5">
                             <X className="h-3.5 w-3.5" />Anular
                           </button>
                         )}
                         {canRefund && (
                           <button onClick={() => setRefundOrderId(o.id)}
-                            className="flex-1 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5">
+                            className="flex-1 min-w-[120px] h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5">
                             <RotateCcw className="h-3.5 w-3.5" />Reembolsar
                           </button>
                         )}
@@ -237,6 +292,62 @@ export default function PedidosPage() {
               <Button className="flex-1 bg-rose-600 hover:bg-rose-700" disabled={!voidReason || voidOrder.isPending}
                 onClick={() => voidOrder.mutate({ orderId: voidOrderId, reason: voidReason })}>
                 {voidOrder.isPending ? "Anulando..." : "Confirmar anulação"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PAY-REMAINING MODAL ─── */}
+      {payOrderId && payableOrder && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPayOrderId(null)} />
+          <div className="relative bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-sm p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <Wallet className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-bold">Pagar restante · #{(payableOrder as any).number}</p>
+                <p className="text-sm text-muted-foreground">
+                  Falta {formatCurrency(remainingFor(payableOrder))} de {formatCurrency(Number((payableOrder as any).total))}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Forma de pagamento</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["pix","cash","credit","debit","voucher"] as const).map(m => (
+                  <button key={m} onClick={() => setPayMethod(m)}
+                    className={cn(
+                      "h-10 rounded-xl border text-xs font-semibold",
+                      payMethod === m ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground"
+                    )}>
+                    {PAY_LABELS[m]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor</label>
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0"
+                value={payAmount}
+                onChange={e => setPayAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPayOrderId(null)}>Cancelar</Button>
+              <Button className="flex-1 bg-amber-600 hover:bg-amber-700"
+                disabled={!payAmount || Number(payAmount) <= 0 || payRemaining.isPending}
+                onClick={() => payRemaining.mutate({
+                  orderId: payOrderId,
+                  payments: [{ method: payMethod, amount: Number(payAmount) }],
+                })}>
+                {payRemaining.isPending ? "Registrando..." : "Confirmar pagamento"}
               </Button>
             </div>
           </div>

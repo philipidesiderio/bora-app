@@ -506,12 +506,14 @@ export const ordersRouter = createTRPCRouter({
         }))
       );
 
-      // Recalculate payment status
+      // Recalculate payment status (excluir "account" = em aberto)
       const { data: allPayments } = await ctx.supa
         .from("order_payments")
-        .select("amount")
+        .select("method, amount")
         .eq("order_id", input.orderId);
-      const totalAllPaid = (allPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+      const totalAllPaid = (allPayments ?? [])
+        .filter((p: any) => p.method !== "account")
+        .reduce((s: number, p: any) => s + Number(p.amount), 0);
       const newStatus = calcPaymentStatus(Number(order.total), totalAllPaid);
 
       await ctx.supa.from("orders").update({
@@ -635,9 +637,11 @@ async function _createOrder(ctx: any, opts: {
   const paymentsList = opts.autoPayFull
     ? [{ method: opts.payments[0]?.method ?? "cash", amount: total, note: null }]
     : opts.payments;
-  const totalPaid     = paymentsList.reduce((s, p) => s + p.amount, 0);
+  // "account" = em aberto (pendente) — NÃO conta como pago
+  const effectivePaid   = paymentsList.filter(p => p.method !== "account").reduce((s, p) => s + p.amount, 0);
+  const totalPaid       = paymentsList.reduce((s, p) => s + p.amount, 0);
   const totalInstalment = opts.instalments.reduce((s, i) => s + i.amount, 0);
-  const paymentStatus = calcPaymentStatus(total, totalPaid + totalInstalment);
+  const paymentStatus   = calcPaymentStatus(total, effectivePaid + totalInstalment);
 
   // Primary payment method for legacy column
   const primaryMethod = paymentsList[0]?.method ?? "cash";
@@ -828,15 +832,15 @@ async function _createOrder(ctx: any, opts: {
     }
   }
 
-  // ── Financeiro: create a paid income transaction for the received amount
-  if (totalPaid > 0) {
+  // ── Financeiro: create a paid income transaction for the received amount (exclui "account")
+  if (effectivePaid > 0) {
     await ctx.supa.from("transactions").insert({
       id:          crypto.randomUUID(),
       tenant_id:   ctx.tenant.id,
       type:        "income",
       category:    "sales",
       description: `Venda Pedido #${number}`,
-      amount:      totalPaid,
+      amount:      effectivePaid,
       status:      "paid",
       paid_at:     new Date().toISOString(),
       reference:   `order:${order.id}`,
@@ -844,7 +848,7 @@ async function _createOrder(ctx: any, opts: {
   }
 
   // Update customer lifetime spend
-  if (opts.customerId && totalPaid > 0) {
+  if (opts.customerId && effectivePaid > 0) {
     const { data: customer } = await ctx.supa
       .from("customers")
       .select("total_orders, total_spent")
@@ -853,7 +857,7 @@ async function _createOrder(ctx: any, opts: {
     if (customer) {
       await ctx.supa.from("customers").update({
         total_orders: (customer.total_orders ?? 0) + 1,
-        total_spent:  (Number(customer.total_spent ?? 0) + totalPaid),
+        total_spent:  (Number(customer.total_spent ?? 0) + effectivePaid),
       }).eq("id", opts.customerId).eq("tenant_id", ctx.tenant.id);
     }
   }
