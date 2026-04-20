@@ -128,7 +128,11 @@ export function PDVScreen() {
         customer: selectedClientId
           ? { name: selectedClientName ?? null, phone: (clients as any[]).find(c => c.id === selectedClientId)?.phone ?? null }
           : null,
-        items: cart.map(i => ({ name: i.name, quantity: i.qty, unit_price: i.price, total: i.price * i.qty })),
+        items: cart.map(i => {
+          const isM2 = i.pricingMode === "m2";
+          const label = isM2 ? `${i.qty.toFixed(2)} ${i.unitLabel ?? "m²"}` : i.qty;
+          return { name: i.name, quantity: label, unit_price: i.price, total: i.price * i.qty };
+        }),
         payments: paymentList.map(p => ({ method: p.method, amount: p.amount })),
         metadata: (deliveryFeeNum > 0 || deliveryAddress)
           ? { delivery: { fee: deliveryFeeNum, address: deliveryAddress || null } }
@@ -310,14 +314,20 @@ export function PDVScreen() {
     }
 
     createOrderMut.mutate({
-      items: cart.map(item => ({
-        productId: item.productId,
-        name: item.name,
-        quantity: item.qty,
-        unitPrice: item.price,
-        costPrice: item.costPrice,
-        discount: 0,
-      })),
+      items: cart.map(item => {
+        // Para produtos por m², a "quantidade" no carrinho é a área.
+        // O DB guarda quantity como inteiro, então mandamos qty=1 e embutimos
+        // a área no unitPrice/costPrice (valor total da linha = price × area).
+        const isM2 = item.pricingMode === "m2";
+        return {
+          productId: item.productId,
+          name:      item.name,
+          quantity:  isM2 ? 1 : item.qty,
+          unitPrice: isM2 ? Number((item.price * item.qty).toFixed(2))     : item.price,
+          costPrice: isM2 ? Number((item.costPrice * item.qty).toFixed(2)) : item.costPrice,
+          discount:  0,
+        };
+      }),
       payments: paymentList,
       instalments: [],
       discount: discountValue,
