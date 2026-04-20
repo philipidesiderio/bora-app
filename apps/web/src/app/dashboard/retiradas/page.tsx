@@ -259,6 +259,17 @@ export default function RetiradasPage() {
                     </div>
                   )}
 
+                  {/* Previsão de entrega */}
+                  {o.metadata?.delivery?.expectedAt && (
+                    <div className="flex items-center gap-1.5 text-xs mb-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-2 py-1.5">
+                      <ChefHat className="w-3.5 h-3.5" />
+                      <span className="font-semibold">Previsão:</span>
+                      <span>{new Date(o.metadata.delivery.expectedAt).toLocaleString("pt-BR", {
+                        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                      })}</span>
+                    </div>
+                  )}
+
                   {/* Itens resumo */}
                   <button
                     onClick={() => setExpanded(isExpanded ? null : o.id)}

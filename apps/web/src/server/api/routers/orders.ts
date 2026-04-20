@@ -73,8 +73,9 @@ export const ordersRouter = createTRPCRouter({
       notes:       z.string().optional(),
       channel:     z.enum(["pdv", "online", "whatsapp"]).default("pdv"),
       registerId:  z.string().optional(),
-      deliveryFee:     z.number().min(0).default(0),
-      deliveryAddress: z.string().optional(),
+      deliveryFee:        z.number().min(0).default(0),
+      deliveryAddress:    z.string().optional(),
+      deliveryExpectedAt: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       return _createOrder(ctx, {
@@ -88,8 +89,9 @@ export const ordersRouter = createTRPCRouter({
         notes:        input.notes,
         channel:      input.channel,
         registerId:   input.registerId,
-        deliveryFee:     input.deliveryFee,
-        deliveryAddress: input.deliveryAddress,
+        deliveryFee:        input.deliveryFee,
+        deliveryAddress:    input.deliveryAddress,
+        deliveryExpectedAt: input.deliveryExpectedAt,
         autoPayFull:  false,
       });
     }),
@@ -545,6 +547,58 @@ export const ordersRouter = createTRPCRouter({
         }
       }
 
+      // ── Caixa: register_history dos pagamentos recebidos HOJE (exclui account)
+      const received = input.payments.filter(p => p.method !== "account" && p.amount > 0);
+      if (received.length > 0) {
+        const { data: openRegister } = await ctx.supa
+          .from("registers")
+          .select("id, balance, status")
+          .eq("tenant_id", ctx.tenant.id)
+          .eq("status", "opened")
+          .limit(1)
+          .maybeSingle();
+
+        if (openRegister) {
+          let runningBalance = Number(openRegister.balance ?? 0);
+          for (const p of received) {
+            const before = runningBalance;
+            const after  = p.method === "cash" ? before + p.amount : before;
+            runningBalance = after;
+            await ctx.supa.from("register_history").insert({
+              tenant_id:        ctx.tenant.id,
+              register_id:      openRegister.id,
+              action:           "order-payment",
+              value:            p.amount,
+              balance_before:   before,
+              balance_after:    after,
+              transaction_type: "positive",
+              description:      `Pagto. Pedido #${order.number} · ${p.method}`,
+              author_id:        ctx.session.user.id,
+            });
+          }
+          await ctx.supa.from("registers").update({
+            balance:    runningBalance,
+            updated_at: new Date().toISOString(),
+          }).eq("id", openRegister.id);
+        }
+
+        // ── Financeiro: transaction com data de HOJE
+        const effectivePaid = received.reduce((s, p) => s + p.amount, 0);
+        if (effectivePaid > 0) {
+          await ctx.supa.from("transactions").insert({
+            id:          crypto.randomUUID(),
+            tenant_id:   ctx.tenant.id,
+            type:        "income",
+            category:    "sales",
+            description: `Pagto. pendente — Pedido #${order.number}`,
+            amount:      effectivePaid,
+            status:      "paid",
+            paid_at:     new Date().toISOString(),
+            reference:   `order:${input.orderId}`,
+          });
+        }
+      }
+
       return { ok: true };
     }),
 
@@ -618,6 +672,7 @@ async function _createOrder(ctx: any, opts: {
   registerId?:  string;
   deliveryFee?: number;
   deliveryAddress?: string;
+  deliveryExpectedAt?: string;
   autoPayFull:  boolean;
 }) {
   const itemsSubtotal = opts.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -671,8 +726,12 @@ async function _createOrder(ctx: any, opts: {
       change_amount:  change,
       notes:          opts.notes ?? null,
       register_id:    opts.registerId ?? null,
-      metadata:       (deliveryFee > 0 || opts.deliveryAddress)
-        ? { delivery: { fee: deliveryFee, address: opts.deliveryAddress ?? null } }
+      metadata:       (deliveryFee > 0 || opts.deliveryAddress || opts.deliveryExpectedAt)
+        ? { delivery: {
+            fee:        deliveryFee,
+            address:    opts.deliveryAddress ?? null,
+            expectedAt: opts.deliveryExpectedAt ?? null,
+          } }
         : null,
     })
     .select()

@@ -63,8 +63,13 @@ export function buildReceiptText(o: ReceiptOrder, businessName = "") {
       lines.push(`  ${METHOD_LABELS[p.method] ?? p.method}: ${money(p.amount)}`);
     }
   }
-  const addr = o.metadata?.delivery?.address;
-  if (addr) { lines.push(""); lines.push(`Entrega: ${addr}`); }
+  const addr     = o.metadata?.delivery?.address;
+  const expected = o.metadata?.delivery?.expectedAt;
+  if (expected) {
+    lines.push("");
+    lines.push(`Previsão de entrega: ${new Date(expected).toLocaleString("pt-BR")}`);
+  }
+  if (addr) { lines.push(""); lines.push(`Endereço: ${addr}`); }
   if (o.notes) { lines.push(""); lines.push(`Obs.: ${o.notes}`); }
   lines.push("");
   lines.push("Obrigado pela preferência!");
@@ -81,7 +86,8 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
     .join("");
   const feeRow = Number(o.metadata?.delivery?.fee ?? 0) > 0
     ? `<tr><td>Entrega</td><td style="text-align:right">+${money(o.metadata.delivery.fee)}</td></tr>` : "";
-  const addr = o.metadata?.delivery?.address;
+  const addr     = o.metadata?.delivery?.address;
+  const expected = o.metadata?.delivery?.expectedAt;
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>Recibo #${esc(o.number)}</title>
@@ -113,7 +119,8 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
     <tr class="total"><td>Total</td><td style="text-align:right">${money(o.total)}</td></tr>
   </table>
   ${paymentsRows ? `<h2>Pagamentos</h2><table>${paymentsRows}</table>` : ""}
-  ${addr ? `<h2>Entrega</h2><p>${esc(addr)}</p>` : ""}
+  ${expected ? `<h2>Previsão de entrega</h2><p>${esc(new Date(expected).toLocaleString("pt-BR"))}</p>` : ""}
+  ${addr ? `<h2>Endereço de entrega</h2><p>${esc(addr)}</p>` : ""}
   ${o.notes ? `<h2>Observações</h2><p>${esc(o.notes)}</p>` : ""}
   <p class="center muted" style="margin-top:18px;">Obrigado pela preferência!</p>
   <div class="no-print center" style="margin-top:16px;">

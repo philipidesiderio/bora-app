@@ -94,6 +94,9 @@ export function PDVScreen() {
   const [deliveryFee, setDeliveryFee]           = useState("");
   const [deliveryAddress, setDeliveryAddress]   = useState("");
 
+  // Previsão de entrega (para "retira depois" / "personalizado")
+  const [expectedDelivery, setExpectedDelivery] = useState("");
+
   // Dialog de medidas (produto por m²)
   const [m2Dialog, setM2Dialog] = useState<{ product: any } | null>(null);
   const [m2Mode, setM2Mode]     = useState<"dims" | "total">("dims");
@@ -134,8 +137,12 @@ export function PDVScreen() {
           return { name: i.name, quantity: label, unit_price: i.price, total: i.price * i.qty };
         }),
         payments: paymentList.map(p => ({ method: p.method, amount: p.amount })),
-        metadata: (deliveryFeeNum > 0 || deliveryAddress)
-          ? { delivery: { fee: deliveryFeeNum, address: deliveryAddress || null } }
+        metadata: (deliveryFeeNum > 0 || deliveryAddress || expectedDelivery)
+          ? { delivery: {
+              fee:        deliveryFeeNum,
+              address:    deliveryAddress || null,
+              expectedAt: expectedDelivery ? new Date(expectedDelivery).toISOString() : null,
+            } }
           : null,
       };
       setReceiptDialog({ order: receipt, kind: orderType });
@@ -251,6 +258,7 @@ export function PDVScreen() {
     setCartOpen(false);
     setDeliveryFee("");
     setDeliveryAddress("");
+    setExpectedDelivery("");
   };
 
   // ─── Pagamentos múltiplos ──────────────────────────────────────────────────
@@ -337,6 +345,9 @@ export function PDVScreen() {
       customerId: selectedClientId || undefined,
       deliveryFee: deliveryFeeNum > 0 ? deliveryFeeNum : 0,
       deliveryAddress: deliveryAddress || undefined,
+      deliveryExpectedAt: (deliveryType === "later" || deliveryType === "custom") && expectedDelivery
+        ? new Date(expectedDelivery).toISOString()
+        : undefined,
     }, {
       onSuccess: () => setMissingDialog(null),
     });
@@ -636,6 +647,28 @@ export function PDVScreen() {
               </button>
             ))}
           </div>
+
+          {/* Previsão de entrega (para "retira depois" e "personalizado") */}
+          {(deliveryType === "later" || deliveryType === "custom") && (
+            <div className="flex items-center gap-2 px-1">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                Previsão:
+              </span>
+              <input
+                type="datetime-local"
+                value={expectedDelivery}
+                onChange={e => setExpectedDelivery(e.target.value)}
+                className="flex-1 h-7 px-2 text-xs border rounded-md bg-background"
+              />
+              {expectedDelivery && (
+                <button
+                  onClick={() => setExpectedDelivery("")}
+                  className="text-muted-foreground hover:text-destructive"
+                ><X className="w-3.5 h-3.5" /></button>
+              )}
+            </div>
+          )}
 
           {/* Entrega (taxa + endereço) */}
           <button
