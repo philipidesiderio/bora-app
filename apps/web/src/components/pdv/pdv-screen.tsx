@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Check, CreditCard, Banknote, Wifi, Receipt,
@@ -106,7 +106,53 @@ export function PDVScreen() {
 
   // Pós-venda: recibo (imprimir / whatsapp)
   const [receiptDialog, setReceiptDialog] = useState<{ order: ReceiptOrder; kind: "sale" | "budget" } | null>(null);
+
+  // Alerta de venda sem cliente
+  const [noClientDialog, setNoClientDialog] = useState(false);
+
+  // Banner "venda recuperada"
+  const [recoveredFrom, setRecoveredFrom] = useState<number | null>(null);
   const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+
+  // Recuperar venda do sessionStorage (vindo da aba Pedidos)
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem("recoverOrder") : null;
+      if (!raw) return;
+      sessionStorage.removeItem("recoverOrder");
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.items) && data.items.length > 0) {
+        setCart(data.items.map((it: any) => ({
+          id: `${it.productId ?? "custom"}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+          productId: it.productId ?? "",
+          name: it.name,
+          price: Number(it.unitPrice),
+          costPrice: 0,
+          qty: Number(it.quantity),
+          pricingMode: "unit",
+        })));
+      }
+      if (data.customerId) setSelectedClientId(data.customerId);
+      if (data.customer?.name) setSelectedClientName(data.customer.name);
+      if (data.discount && Number(data.discount) > 0) { setDiscount(String(data.discount)); setDiscountType("flat"); }
+      if (data.notes) setCustomItemObs(data.notes);
+      if (data.delivery) {
+        if (data.delivery.fee) setDeliveryFee(String(data.delivery.fee));
+        if (data.delivery.address) setDeliveryAddress(data.delivery.address);
+        if (data.delivery.expectedAt) {
+          // datetime-local aceita YYYY-MM-DDTHH:mm
+          const dt = new Date(data.delivery.expectedAt);
+          const pad = (n: number) => String(n).padStart(2, "0");
+          setExpectedDelivery(`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
+          setDeliveryType("later");
+        }
+      }
+      if (data.recoveredFrom) {
+        setRecoveredFrom(Number(data.recoveredFrom));
+        toast.success(`Venda #${data.recoveredFrom} recuperada para edição`);
+      }
+    } catch (e) { /* ignore */ }
+  }, []);
 
   // Queries
   const { data: products   = [] } = api.products.list.useQuery({ search, limit: 100 });
@@ -387,6 +433,17 @@ export function PDVScreen() {
           </span>
         </button>
       </div>
+
+      {recoveredFrom !== null && (
+        <div className="shrink-0 px-3 pt-2">
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-sky-700 text-[11px]">
+            <span>Recuperado do pedido #{recoveredFrom}. Ao finalizar será criado um novo pedido.</span>
+            <button onClick={() => setRecoveredFrom(null)} className="hover:text-sky-900">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Busca ── */}
       <div className="shrink-0 px-3 pt-2 pb-1">
@@ -696,7 +753,11 @@ export function PDVScreen() {
               <FileText className="w-4 h-4" /> Orçamento
             </button>
             <button
-              onClick={() => { setOrderType("sale"); setShowPaymentModal(true); }}
+              onClick={() => {
+                setOrderType("sale");
+                if (!selectedClientId) { setNoClientDialog(true); return; }
+                setShowPaymentModal(true);
+              }}
               disabled={!cart.length}
               className="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-primary/90 active:scale-95 transition-all"
             >
@@ -1323,6 +1384,39 @@ export function PDVScreen() {
               onClick={() => { setReceiptDialog(null); resetCart(); }}
             >
               Nova venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Venda sem Cliente
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={noClientDialog} onOpenChange={setNoClientDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-amber-600" /> Venda sem Cliente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Nenhum cliente foi selecionado. Deseja selecionar um cliente agora ou seguir sem cliente?
+            </p>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full"
+              onClick={() => { setNoClientDialog(false); setShowClientDialog(true); }}
+            >
+              <UserPlus className="w-4 h-4 mr-1.5" /> Selecionar cliente
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => { setNoClientDialog(false); setShowPaymentModal(true); }}
+            >
+              Manter sem cliente
             </Button>
           </DialogFooter>
         </DialogContent>

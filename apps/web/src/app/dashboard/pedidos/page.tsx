@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, CheckCircle2, Wallet, User, Printer, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, CheckCircle2, Wallet, User, Printer, MessageCircle, RefreshCcw } from "lucide-react";
 import { printReceipt, sendWhatsappReceipt } from "@/lib/receipt";
 import { api } from "@/components/providers/trpc-provider";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ function formatDate(d: string) {
 
 export default function PedidosPage() {
   const utils = api.useUtils();
+  const router = useRouter();
   const [tab, setTab]           = useState("all");
   const [openOrder, setOpenOrder] = useState<string | null>(null);
 
@@ -57,6 +59,8 @@ export default function PedidosPage() {
 
   // Refund modal
   const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
+  const [refundAmount,  setRefundAmount]  = useState("");
+  const [refundReason,  setRefundReason]  = useState("");
 
   // Pay-remaining modal
   const [payOrderId, setPayOrderId]       = useState<string | null>(null);
@@ -78,9 +82,41 @@ export default function PedidosPage() {
   });
 
   const refundOrder = api.orders.refund.useMutation({
-    onSuccess: () => { toast.success("Reembolso registrado!"); setRefundOrderId(null); invalidate(); },
+    onSuccess: () => {
+      toast.success("Reembolso registrado!");
+      setRefundOrderId(null); setRefundAmount(""); setRefundReason("");
+      invalidate();
+    },
     onError: (e) => toast.error(e.message),
   });
+
+  // Recuperar venda: anula e devolve para o PDV com os dados pré-preenchidos
+  const recoverVoid = api.orders.void.useMutation({
+    onError: (e) => toast.error(e.message),
+  });
+
+  function handleRecover(o: any) {
+    if (!confirm(`Recuperar venda #${o.number}? O pedido atual será anulado e o estoque reposto. Você terminará a edição no PDV.`)) return;
+    const payload = {
+      customerId: o.customer_id ?? null,
+      customer:   o.customer ?? null,
+      discount:   Number(o.discount ?? 0),
+      notes:      o.notes ?? "",
+      items: (o.items ?? []).map((it: any) => ({
+        productId: it.product_id ?? null,
+        name:      it.name,
+        quantity:  Number(it.quantity),
+        unitPrice: Number(it.unit_price),
+      })),
+      delivery: o.metadata?.delivery ?? null,
+      recoveredFrom: o.number,
+    };
+    try { sessionStorage.setItem("recoverOrder", JSON.stringify(payload)); } catch {}
+    recoverVoid.mutate(
+      { orderId: o.id, reason: `Recuperada para edição` },
+      { onSuccess: () => { invalidate(); router.push("/dashboard/pdv"); } }
+    );
+  }
 
   const payRemaining = api.orders.pay.useMutation({
     onSuccess: () => {
@@ -120,6 +156,12 @@ export default function PedidosPage() {
     setPayOrderId(o.id);
     setPayAmount(remainingFor(o).toFixed(2));
     setPayMethod("pix");
+  }
+
+  function openRefundDialog(o: any) {
+    setRefundOrderId(o.id);
+    setRefundAmount(Number(o.total ?? 0).toFixed(2));
+    setRefundReason("");
   }
 
   return (
@@ -275,9 +317,16 @@ export default function PedidosPage() {
                           </button>
                         )}
                         {canRefund && (
-                          <button onClick={() => setRefundOrderId(o.id)}
+                          <button onClick={() => openRefundDialog(o)}
                             className="flex-1 min-w-[120px] h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5">
                             <RotateCcw className="h-3.5 w-3.5" />Reembolsar
+                          </button>
+                        )}
+                        {canVoid && (
+                          <button onClick={() => handleRecover(o)}
+                            disabled={recoverVoid.isPending}
+                            className="flex-1 min-w-[120px] h-9 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60">
+                            <RefreshCcw className="h-3.5 w-3.5" />Recuperar venda
                           </button>
                         )}
                       </div>
@@ -386,19 +435,58 @@ export default function PedidosPage() {
               </div>
               <div>
                 <p className="font-bold">Reembolsar pedido #{(refundableOrder as any).number}</p>
-                <p className="text-sm text-muted-foreground">Devolução total de {formatCurrency(Number((refundableOrder as any).total))}</p>
+                <p className="text-sm text-muted-foreground">Total do pedido: {formatCurrency(Number((refundableOrder as any).total))}</p>
               </div>
             </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor a reembolsar</label>
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0"
+                max={Number((refundableOrder as any).total)}
+                value={refundAmount}
+                onChange={e => setRefundAmount(e.target.value)}
+              />
+              <div className="flex gap-1 mt-2">
+                <button
+                  className="text-[11px] px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                  onClick={() => setRefundAmount(Number((refundableOrder as any).total).toFixed(2))}>
+                  Total
+                </button>
+                <button
+                  className="text-[11px] px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                  onClick={() => setRefundAmount((Number((refundableOrder as any).total) / 2).toFixed(2))}>
+                  50%
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Motivo do reembolso *</label>
+              <textarea
+                placeholder="Ex.: cliente desistiu, produto com defeito..."
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+              />
+            </div>
+
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setRefundOrderId(null)}>Cancelar</Button>
-              <Button className="flex-1 bg-purple-600 hover:bg-purple-700" disabled={refundOrder.isPending}
+              <Button className="flex-1 bg-purple-600 hover:bg-purple-700"
+                disabled={
+                  refundOrder.isPending ||
+                  !refundReason.trim() ||
+                  !refundAmount ||
+                  Number(refundAmount) <= 0 ||
+                  Number(refundAmount) > Number((refundableOrder as any).total)
+                }
                 onClick={() => refundOrder.mutate({
                   orderId: refundOrderId,
-                  reason: "Reembolso total",
-                  items: ((refundableOrder as any).items ?? []).map((item: any) => ({
-                    orderItemId: item.id, quantity: Number(item.quantity),
-                    unitPrice: Number(item.unit_price), condition: "good",
-                  })),
+                  reason:  refundReason.trim(),
+                  amount:  Number(refundAmount),
+                  items: [],
                 })}>
                 {refundOrder.isPending ? "Reembolsando..." : "Confirmar reembolso"}
               </Button>

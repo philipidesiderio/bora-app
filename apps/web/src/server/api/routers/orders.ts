@@ -215,13 +215,14 @@ export const ordersRouter = createTRPCRouter({
     .input(z.object({
       orderId: z.string(),
       reason:  z.string().optional(),
+      amount:  z.number().positive().optional(),   // quando presente = reembolso por VALOR (sem mexer em estoque)
       items: z.array(z.object({
         orderItemId: z.string(),
         quantity:    z.number().positive(),
         unitPrice:   z.number().positive(),
         condition:   z.enum(["good", "damaged"]).default("good"),
         notes:       z.string().optional(),
-      })),
+      })).default([]),
       refundToAccount: z.boolean().default(false), // credit customer account
     }))
     .mutation(async ({ ctx, input }) => {
@@ -239,7 +240,13 @@ export const ordersRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Pedido não pode ser reembolsado neste estado." });
       }
 
-      const totalRefund = input.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const totalRefund = input.amount ?? input.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      if (totalRefund <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Valor de reembolso inválido." });
+      }
+      if (totalRefund > Number(order.total)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Reembolso maior que o total do pedido." });
+      }
 
       // Create refund record
       const { data: refund, error: refundErr } = await ctx.supa
