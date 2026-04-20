@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import {
   Search, Plus, Minus, Check, CreditCard, Banknote, Wifi, Receipt,
   User, FileText, UserPlus, Package, Trash2, X, ChevronDown, ChevronUp,
-  Clock, Wrench, ShoppingCart, Tag, Truck, MapPin
+  Clock, Wrench, ShoppingCart, Tag, Truck, MapPin, Printer, MessageCircle, Ruler
 } from "lucide-react";
+import { printReceipt, sendWhatsappReceipt, type ReceiptOrder } from "@/lib/receipt";
 import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +20,13 @@ interface CartItem {
   id: string;
   productId: string;
   name: string;
-  price: number;
+  price: number;          // preço unitário (ou por m²)
   costPrice: number;
-  qty: number;
+  qty: number;            // quantidade OU m² total (se pricingMode="m2")
   imageUrl?: string;
+  pricingMode?: "unit" | "m2";
+  unitLabel?: string;     // "m²" por exemplo
+  dimensions?: { height: number; width: number } | null;
 }
 
 interface PaymentEntry {
@@ -90,6 +94,17 @@ export function PDVScreen() {
   const [deliveryFee, setDeliveryFee]           = useState("");
   const [deliveryAddress, setDeliveryAddress]   = useState("");
 
+  // Dialog de medidas (produto por m²)
+  const [m2Dialog, setM2Dialog] = useState<{ product: any } | null>(null);
+  const [m2Mode, setM2Mode]     = useState<"dims" | "total">("dims");
+  const [m2Height, setM2Height] = useState("");
+  const [m2Width, setM2Width]   = useState("");
+  const [m2Total, setM2Total]   = useState("");
+
+  // Pós-venda: recibo (imprimir / whatsapp)
+  const [receiptDialog, setReceiptDialog] = useState<{ order: ReceiptOrder; kind: "sale" | "budget" } | null>(null);
+  const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+
   // Queries
   const { data: products   = [] } = api.products.list.useQuery({ search, limit: 100 });
   const { data: categories = [] } = api.products.listCategories.useQuery();
@@ -98,11 +113,31 @@ export function PDVScreen() {
 
   // Mutations
   const createOrderMut = api.orders.createWithPayments.useMutation({
-    onSuccess: () => {
+    onSuccess: (created: any) => {
       utils.orders.list.invalidate();
       toast.success(orderType === "budget" ? "Orçamento gerado!" : "Venda registrada!");
-      resetCart();
+      // Monta um ReceiptOrder com base no carrinho atual (temos tudo em mão)
+      const paymentList = buildPaymentList();
+      const receipt: ReceiptOrder = {
+        number: created?.number ?? "—",
+        total,
+        subtotal,
+        discount: discountValue,
+        created_at: created?.created_at ?? new Date().toISOString(),
+        notes: deliveryType === "custom" ? customItemObs : null,
+        customer: selectedClientId
+          ? { name: selectedClientName ?? null, phone: (clients as any[]).find(c => c.id === selectedClientId)?.phone ?? null }
+          : null,
+        items: cart.map(i => ({ name: i.name, quantity: i.qty, unit_price: i.price, total: i.price * i.qty })),
+        payments: paymentList.map(p => ({ method: p.method, amount: p.amount })),
+        metadata: (deliveryFeeNum > 0 || deliveryAddress)
+          ? { delivery: { fee: deliveryFeeNum, address: deliveryAddress || null } }
+          : null,
+      };
+      setReceiptDialog({ order: receipt, kind: orderType });
       setShowPaymentModal(false);
+      setMissingDialog(null);
+      // NÃO reseta o carrinho ainda — reseta quando o usuário fechar o recibo
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -135,6 +170,13 @@ export function PDVScreen() {
   // ─── Carrinho ──────────────────────────────────────────────────────────────
 
   const addToCart = (p: any) => {
+    // Produto personalizado por m² → abre diálogo de medidas
+    if (p.pricing_mode === "m2") {
+      setM2Mode("dims");
+      setM2Height(""); setM2Width(""); setM2Total("");
+      setM2Dialog({ product: p });
+      return;
+    }
     setCart(prev => {
       const ex = prev.find(i => i.productId === p.id);
       if (ex) return prev.map(i => i.productId === p.id ? { ...i, qty: i.qty + 1 } : i);
@@ -146,8 +188,39 @@ export function PDVScreen() {
         costPrice: Number(p.cost_price ?? 0),
         qty: 1,
         imageUrl: p.imageUrl,
+        pricingMode: "unit",
       }];
     });
+  };
+
+  const confirmM2 = () => {
+    if (!m2Dialog) return;
+    const p = m2Dialog.product;
+    const h = parseMoney(m2Height);
+    const w = parseMoney(m2Width);
+    const t = parseMoney(m2Total);
+    const area = m2Mode === "dims" ? h * w : t;
+    if (area <= 0) {
+      toast.error("Informe as medidas ou o total em m².");
+      return;
+    }
+    const unitLabel = p.unit_label || "m²";
+    const name = m2Mode === "dims"
+      ? `${p.name} · ${h.toFixed(2)}×${w.toFixed(2)} ${unitLabel} (${area.toFixed(2)} ${unitLabel})`
+      : `${p.name} · ${area.toFixed(2)} ${unitLabel}`;
+    setCart(prev => [...prev, {
+      id: `${p.id}-${Date.now()}`,
+      productId: p.id,
+      name,
+      price: Number(p.price),
+      costPrice: Number(p.cost_price ?? 0),
+      qty: Number(area.toFixed(4)),
+      imageUrl: p.imageUrl,
+      pricingMode: "m2",
+      unitLabel,
+      dimensions: m2Mode === "dims" ? { height: h, width: w } : null,
+    }]);
+    setM2Dialog(null);
   };
 
   const removeFromCart = (id: string) =>
@@ -1059,6 +1132,154 @@ export function PDVScreen() {
               onClick={() => setShowDeliveryDialog(false)}
             >
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Medidas (produto por m²)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!m2Dialog} onOpenChange={v => { if (!v) setM2Dialog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ruler className="w-5 h-5 text-primary" />
+              {m2Dialog?.product?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl bg-muted/40 p-3 text-sm">
+              Preço por {m2Dialog?.product?.unit_label || "m²"}:
+              <span className="font-bold text-primary ml-1">
+                {m2Dialog ? formatCurrency(Number(m2Dialog.product.price)) : ""}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setM2Mode("dims")}
+                className={cn(
+                  "py-2 rounded-lg border text-sm font-medium",
+                  m2Mode === "dims" ? "bg-primary text-white border-primary" : "bg-muted/30 border-border"
+                )}
+              >Altura × Largura</button>
+              <button
+                onClick={() => setM2Mode("total")}
+                className={cn(
+                  "py-2 rounded-lg border text-sm font-medium",
+                  m2Mode === "total" ? "bg-primary text-white border-primary" : "bg-muted/30 border-border"
+                )}
+              >Total em m²</button>
+            </div>
+
+            {m2Mode === "dims" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Altura (m)</label>
+                  <Input
+                    type="number" step="0.01" min="0" inputMode="decimal"
+                    value={m2Height} onChange={e => setM2Height(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Largura (m)</label>
+                  <Input
+                    type="number" step="0.01" min="0" inputMode="decimal"
+                    value={m2Width} onChange={e => setM2Width(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-muted-foreground">Total em m²</label>
+                <Input
+                  type="number" step="0.01" min="0" inputMode="decimal"
+                  value={m2Total} onChange={e => setM2Total(e.target.value)}
+                  placeholder="0,00"
+                />
+              </div>
+            )}
+
+            {/* Preview */}
+            {(() => {
+              const h = parseMoney(m2Height), w = parseMoney(m2Width), t = parseMoney(m2Total);
+              const area = m2Mode === "dims" ? h * w : t;
+              if (area <= 0 || !m2Dialog) return null;
+              const price = Number(m2Dialog.product.price);
+              return (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm flex justify-between">
+                  <span>{area.toFixed(2)} {m2Dialog.product.unit_label || "m²"} × {formatCurrency(price)}</span>
+                  <span className="font-bold text-primary">{formatCurrency(area * price)}</span>
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setM2Dialog(null)}>Cancelar</Button>
+            <Button onClick={confirmM2}>Adicionar ao carrinho</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: Pós-venda (recibo)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog
+        open={!!receiptDialog}
+        onOpenChange={v => {
+          if (!v && receiptDialog) {
+            setReceiptDialog(null);
+            resetCart();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <Check className="w-5 h-5" />
+              {receiptDialog?.kind === "budget" ? "Orçamento gerado" : "Venda concluída"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center">
+              <p className="text-xs text-emerald-700">
+                {receiptDialog?.kind === "budget" ? "Orçamento" : "Pedido"} #{receiptDialog?.order.number}
+              </p>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">
+                {formatCurrency(Number(receiptDialog?.order.total ?? 0))}
+              </p>
+              {receiptDialog?.order.customer?.name && (
+                <p className="text-xs text-emerald-700 mt-1">
+                  {receiptDialog.order.customer.name}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => receiptDialog && printReceipt(receiptDialog.order, business?.name ?? "")}
+              >
+                <Printer className="w-4 h-4 mr-1.5" /> Imprimir
+              </Button>
+              <Button
+                onClick={() => receiptDialog && sendWhatsappReceipt(receiptDialog.order, business?.name ?? "")}
+                className="bg-[#25D366] hover:bg-[#1ea855] text-white"
+              >
+                <MessageCircle className="w-4 h-4 mr-1.5" /> WhatsApp
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setReceiptDialog(null); resetCart(); }}
+            >
+              Nova venda
             </Button>
           </DialogFooter>
         </DialogContent>

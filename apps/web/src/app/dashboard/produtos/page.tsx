@@ -1,16 +1,17 @@
 "use client";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Package, ImagePlus, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, ImagePlus, X, Tags, Ruler } from "lucide-react";
 import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type ProductForm = {
   name: string;
+  description: string;
   price: string;
   costPrice: string;
   stock: string;
@@ -19,11 +20,14 @@ type ProductForm = {
   showInStore: boolean;
   categoryId: string;
   imageUrl: string;
+  pricingMode: "unit" | "m2";
+  unitLabel: string;
 };
 
 const emptyForm: ProductForm = {
-  name: "", price: "", costPrice: "", stock: "0",
+  name: "", description: "", price: "", costPrice: "", stock: "0",
   type: "product", trackStock: true, showInStore: true, categoryId: "", imageUrl: "",
+  pricingMode: "unit", unitLabel: "",
 };
 
 const TYPE_OPTIONS = [
@@ -72,6 +76,40 @@ export default function ProdutosPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  // ── Categorias ────────────────────────────────────────────────────────────
+  const [catOpen, setCatOpen]     = useState(false);
+  const [catEditId, setCatEditId] = useState<string | null>(null);
+  const [catForm, setCatForm]     = useState({ name: "", emoji: "📦" });
+
+  const createCatMut = api.products.createCategory.useMutation({
+    onSuccess: () => {
+      utils.products.listCategories.invalidate();
+      toast.success("Categoria criada!");
+      setCatForm({ name: "", emoji: "📦" });
+      setCatEditId(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateCatMut = api.products.updateCategory.useMutation({
+    onSuccess: () => {
+      utils.products.listCategories.invalidate();
+      toast.success("Categoria atualizada!");
+      setCatForm({ name: "", emoji: "📦" });
+      setCatEditId(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteCatMut = api.products.deleteCategory.useMutation({
+    onSuccess: () => { utils.products.listCategories.invalidate(); utils.products.list.invalidate(); toast.success("Categoria removida!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function submitCategory() {
+    if (!catForm.name.trim()) return;
+    if (catEditId) updateCatMut.mutate({ id: catEditId, name: catForm.name, emoji: catForm.emoji });
+    else           createCatMut.mutate({ name: catForm.name, emoji: catForm.emoji });
+  }
+
   function openNew() {
     setForm(emptyForm);
     setEditId(null);
@@ -82,6 +120,7 @@ export default function ProdutosPage() {
   function openEdit(p: any) {
     setForm({
       name:        p.name,
+      description: p.description ?? "",
       price:       p.price,
       costPrice:   p.cost_price ?? "",
       stock:       String(p.stock ?? 0),
@@ -90,6 +129,8 @@ export default function ProdutosPage() {
       showInStore: p.show_in_store ?? true,
       categoryId:  p.category_id ?? "",
       imageUrl:    p.image_url ?? "",
+      pricingMode: (p.pricing_mode === "m2" ? "m2" : "unit"),
+      unitLabel:   p.unit_label ?? "",
     });
     setImagePreview(p.image_url ?? null);
     setEditId(p.id);
@@ -115,6 +156,7 @@ export default function ProdutosPage() {
   function handleSubmit() {
     const data = {
       name: form.name,
+      description: form.description || undefined,
       price: Number(form.price),
       costPrice: form.costPrice ? Number(form.costPrice) : undefined,
       stock: Number(form.stock),
@@ -124,6 +166,8 @@ export default function ProdutosPage() {
       showInStore: form.showInStore,
       categoryId: form.categoryId || undefined,
       imageUrl: form.imageUrl || undefined,
+      pricingMode: form.pricingMode,
+      unitLabel: form.pricingMode === "m2" ? (form.unitLabel || "m²") : undefined,
     };
     if (editId) updateMut.mutate({ ...data, id: editId });
     else createMut.mutate(data);
@@ -139,9 +183,14 @@ export default function ProdutosPage() {
           <h1 className="font-heading text-2xl font-bold">Produtos</h1>
           <p className="text-sm text-muted-foreground">{products.length} produto{products.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button onClick={openNew} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Novo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setCatOpen(true)} size="sm" variant="outline">
+            <Tags className="h-4 w-4 mr-1" /> Categorias
+          </Button>
+          <Button onClick={openNew} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Novo
+          </Button>
+        </div>
       </div>
 
       {/* Busca */}
@@ -275,6 +324,17 @@ export default function ProdutosPage() {
               />
             </div>
 
+            {/* Descrição */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Escreva detalhes, materiais, acabamento, medidas padrão... (opcional)"
+                rows={3}
+              />
+            </div>
+
             {/* Preços */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -342,6 +402,44 @@ export default function ProdutosPage() {
               </select>
             </div>
 
+            {/* Modo de preço (Personalizado por m²) */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Ruler className="h-3.5 w-3.5" /> Modo de preço
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, pricingMode: "unit" }))}
+                  className={cn(
+                    "py-2 rounded-lg border text-sm font-medium transition-all",
+                    form.pricingMode === "unit"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/60"
+                  )}
+                >
+                  Unidade
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, pricingMode: "m2", unitLabel: f.unitLabel || "m²" }))}
+                  className={cn(
+                    "py-2 rounded-lg border text-sm font-medium transition-all",
+                    form.pricingMode === "m2"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/60"
+                  )}
+                >
+                  Personalizado · m²
+                </button>
+              </div>
+              {form.pricingMode === "m2" && (
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  No PDV a pessoa informa altura × largura (ou o total em m²) e o sistema multiplica pelo preço do m².
+                </p>
+              )}
+            </div>
+
             {/* Estoque */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Estoque inicial</label>
@@ -396,6 +494,86 @@ export default function ProdutosPage() {
             >
               {createMut.isPending || updateMut.isPending ? "Salvando..." : editId ? "Salvar" : "Criar"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          DIALOG: Categorias
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={catOpen} onOpenChange={v => { setCatOpen(v); if (!v) { setCatEditId(null); setCatForm({ name: "", emoji: "📦" }); } }}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tags className="w-5 h-5" /> Categorias
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Formulário nova/edição */}
+            <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border">
+              <p className="text-xs font-semibold">{catEditId ? "Editar categoria" : "Nova categoria"}</p>
+              <div className="flex gap-2">
+                <Input
+                  className="w-16 text-center"
+                  maxLength={4}
+                  value={catForm.emoji}
+                  onChange={e => setCatForm(f => ({ ...f, emoji: e.target.value || "📦" }))}
+                  placeholder="📦"
+                />
+                <Input
+                  className="flex-1"
+                  value={catForm.name}
+                  onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Nome da categoria"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                {catEditId && (
+                  <Button variant="outline" size="sm" onClick={() => { setCatEditId(null); setCatForm({ name: "", emoji: "📦" }); }}>
+                    Cancelar
+                  </Button>
+                )}
+                <Button size="sm" onClick={submitCategory}
+                  disabled={!catForm.name.trim() || createCatMut.isPending || updateCatMut.isPending}>
+                  {catEditId
+                    ? (updateCatMut.isPending ? "Salvando..." : "Salvar")
+                    : (createCatMut.isPending ? "Criando..." : "Adicionar")}
+                </Button>
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="space-y-1.5">
+              {categories.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria ainda.</p>
+              ) : categories.map((c: any) => (
+                <div key={c.id} className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card">
+                  <span className="text-lg w-7 text-center">{c.emoji ?? "📦"}</span>
+                  <span className="flex-1 text-sm font-medium truncate">{c.name}</span>
+                  <button
+                    onClick={() => { setCatEditId(c.id); setCatForm({ name: c.name, emoji: c.emoji ?? "📦" }); }}
+                    className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Remover categoria "${c.name}"? Produtos ficarão sem categoria.`)) {
+                        deleteCatMut.mutate({ id: c.id });
+                      }
+                    }}
+                    className="w-7 h-7 rounded-lg hover:bg-rose-50 flex items-center justify-center"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setCatOpen(false)} className="w-full">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -14,6 +14,8 @@ const productSchema = z.object({
   type:        z.enum(["product", "service", "combo"]).default("product"),
   trackStock:  z.boolean().default(true),
   showInStore: z.boolean().default(true),
+  pricingMode: z.enum(["unit", "m2"]).default("unit"),
+  unitLabel:   z.string().optional(),
 });
 
 export const productsRouter = createTRPCRouter({
@@ -73,6 +75,8 @@ export const productsRouter = createTRPCRouter({
           type:        input.type,
           track_stock: input.trackStock,
           show_in_store: input.showInStore,
+          pricing_mode: input.pricingMode,
+          unit_label:  input.unitLabel ?? null,
           is_active:   true,
         })
         .select()
@@ -102,6 +106,8 @@ export const productsRouter = createTRPCRouter({
           type:          rest.type,
           track_stock:   rest.trackStock,
           show_in_store: rest.showInStore,
+          pricing_mode:  rest.pricingMode,
+          unit_label:    rest.unitLabel ?? null,
           updated_at:    new Date().toISOString(),
         })
         .eq("id", id)

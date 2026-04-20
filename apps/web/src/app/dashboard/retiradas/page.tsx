@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import {
   PackageCheck, Search, Check, X, Mic, Paperclip,
   CreditCard, Banknote, Wifi, Receipt, Plus, ChevronDown, ChevronUp,
-  AlertTriangle, Wrench, User, ChefHat
+  AlertTriangle, Wrench, User, ChefHat, Printer, MessageCircle
 } from "lucide-react";
+import { printReceipt, sendWhatsappReceipt } from "@/lib/receipt";
 import { api } from "@/components/providers/trpc-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,9 @@ export default function RetiradasPage() {
     limit: 50,
     statuses: ["delivered", "cancelled"],
   });
+
+  const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const businessName = business?.name ?? "";
 
   const filtered = orders.filter((o: any) => {
     if (!search) return true;
@@ -338,6 +342,22 @@ export default function RetiradasPage() {
                     className="py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors"
                   >
                     <Wrench className="w-3.5 h-3.5" /> Personalizar
+                  </button>
+
+                  {/* Imprimir recibo */}
+                  <button
+                    onClick={() => printReceipt(o, businessName)}
+                    className="py-2 rounded-xl bg-muted border border-border text-foreground text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-muted/80 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Imprimir
+                  </button>
+
+                  {/* Recibo WhatsApp */}
+                  <button
+                    onClick={() => sendWhatsappReceipt(o, businessName)}
+                    className="py-2 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#1ea855] transition-colors"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                   </button>
                 </div>
               </div>

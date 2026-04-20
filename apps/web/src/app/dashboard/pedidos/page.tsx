@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, CheckCircle2, Wallet } from "lucide-react";
+import { ShoppingBag, Clock, X, RotateCcw, AlertTriangle, CheckCircle2, Wallet, User, Printer, MessageCircle } from "lucide-react";
+import { printReceipt, sendWhatsappReceipt } from "@/lib/receipt";
 import { api } from "@/components/providers/trpc-provider";
 import { toast } from "sonner";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -66,6 +67,8 @@ export default function PedidosPage() {
     limit: 50,
     paymentStatus: tab !== "all" ? tab : undefined,
   });
+  const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const businessName = business?.name ?? "";
 
   const invalidate = () => utils.orders.list.invalidate();
 
@@ -173,6 +176,12 @@ export default function PedidosPage() {
                       </span>
                     </div>
                   </div>
+                  {o.customer?.name && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{o.customer.name}{o.customer.phone ? ` · ${o.customer.phone}` : ""}</span>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground mb-3">
                     {(o.items ?? []).length} {(o.items ?? []).length === 1 ? "item" : "itens"}
                     {(o.items ?? []).length > 0 && ` · ${(o.items as any[]).slice(0,2).map((i:any)=>i.name).join(", ")}${(o.items ?? []).length > 2 ? "…" : ""}`}
@@ -230,6 +239,18 @@ export default function PedidosPage() {
                         ))}
                       </div>
                     )}
+
+                    {/* Recibo: imprimir + WhatsApp */}
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => printReceipt(o, businessName)}
+                        className="flex-1 h-9 rounded-xl bg-muted text-foreground border border-border text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-muted/80">
+                        <Printer className="h-3.5 w-3.5" />Imprimir recibo
+                      </button>
+                      <button onClick={() => sendWhatsappReceipt(o, businessName)}
+                        className="flex-1 h-9 rounded-xl bg-[#25D366] text-white text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#1ea855]">
+                        <MessageCircle className="h-3.5 w-3.5" />WhatsApp
+                      </button>
+                    </div>
 
                     {/* Actions */}
                     {payStatus !== "void" && payStatus !== "refunded" && (
