@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   lumipOS:
-    image: lumipOS:latest
+    image: ghcr.io/philipidesiderio/lumipOS:latest
     container_name: lumipOS
     restart: unless-stopped
     environment:
@@ -22,12 +22,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lumipOS.rule=Host(`app.iagenium.online`)"
-      - "traefik.http.routers.lumipOS.entrypoints=websecure"
-      - "traefik.http.routers.lumipOS.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lumipOS.entrypoints=web,websecure"
+      - "traefik.http.routers.lumipOS.tls.certresolver=leresolver"
       - "traefik.http.services.lumipOS.loadbalancer.server.port=3000"
     networks:
-      - proxy
+      - portainer_default
 
 networks:
-  proxy:
+  portainer_default:
     external: true
