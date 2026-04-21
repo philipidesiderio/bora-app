@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   lumipOS:
-    image: ghcr.io/philipidesiderio/lumipOS:latest
+    image: ghcr.io/philipidesiderio/lumipos:latest
     container_name: lumipOS
     restart: unless-stopped
     environment:
