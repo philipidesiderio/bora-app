@@ -15,7 +15,7 @@ export const reportsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       let query = ctx.supa
         .from("orders")
-        .select("id, total, subtotal, discount, payment_status, created_at, items:order_items(cost_price, quantity)")
+        .select("id, total, subtotal, discount, payment_status, created_at")
         .eq("tenant_id", ctx.tenant.id)
         .neq("payment_status", "void");
 
@@ -26,14 +26,26 @@ export const reportsRouter = createTRPCRouter({
       if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error.message });
 
       const rows = orders ?? [];
-      const totalRevenue  = rows.reduce((s, o) => s + Number(o.total), 0);
-      const totalCost     = rows.reduce((s, o) =>
-        s + (o.items ?? []).reduce((si: number, i: any) => si + Number(i.cost_price ?? 0) * Number(i.quantity), 0), 0);
-      const totalDiscount = rows.reduce((s, o) => s + Number(o.discount ?? 0), 0);
+      const orderIds = rows.map((o: any) => o.id);
+
+      // Busca itens separadamente (evita dependência de FK no PostgREST)
+      let totalCost = 0;
+      if (orderIds.length) {
+        const { data: items } = await ctx.supa
+          .from("order_items")
+          .select("order_id, cost_price, quantity")
+          .in("order_id", orderIds);
+        for (const i of items ?? []) {
+          totalCost += Number((i as any).cost_price ?? 0) * Number((i as any).quantity ?? 0);
+        }
+      }
+
+      const totalRevenue  = rows.reduce((s: number, o: any) => s + Number(o.total), 0);
+      const totalDiscount = rows.reduce((s: number, o: any) => s + Number(o.discount ?? 0), 0);
       const grossProfit   = totalRevenue - totalCost;
       const ticketMedio   = rows.length > 0 ? totalRevenue / rows.length : 0;
 
-      const byStatus = rows.reduce((acc: Record<string, number>, o) => {
+      const byStatus = rows.reduce((acc: Record<string, number>, o: any) => {
         const s = o.payment_status ?? "unknown";
         acc[s] = (acc[s] ?? 0) + 1;
         return acc;

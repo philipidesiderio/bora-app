@@ -10,8 +10,8 @@ export default function SmartPOSPage() {
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="font-heading text-xl font-bold">SmartPOS API</h1>
-          <p className="text-xs text-muted-foreground">API para SmartPOS</p>
+          <h1 className="font-heading text-xl font-bold">lumiPOS API</h1>
+          <p className="text-xs text-muted-foreground">API para integrações</p>
         </div>
       </div>
 
@@ -22,9 +22,9 @@ export default function SmartPOSPage() {
             <Lock className="w-3 h-3 text-white" />
           </div>
         </div>
-        <h2 className="font-heading text-lg font-bold">SmartPOS API</h2>
+        <h2 className="font-heading text-lg font-bold">lumiPOS API</h2>
         <p className="text-muted-foreground text-sm max-w-xs">
-          Integre o sistema com dispositivos SmartPOS via API. Ideal para redes de loja com múltiplos terminais.
+          Integre o lumiPOS via API. Ideal para redes de loja com múltiplos terminais e automações.
         </p>
         <span className="text-xs bg-yellow-500 text-white px-3 py-1.5 rounded-full font-bold">
           PREMIUM

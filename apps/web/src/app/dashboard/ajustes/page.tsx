@@ -24,7 +24,7 @@ const SECTIONS = [
       { href: "/dashboard/ajustes/totem",         icon: Tv,          label: "Totem Digital",       desc: "Autoatendimento", badge: "PREMIUM" },
       { href: "/dashboard/ajustes/maquininhas",   icon: CreditCard,  label: "Maquininhas",         desc: "Integração de pagamento" },
       { href: "/dashboard/ajustes/equipamentos",  icon: MonitorPlay, label: "Equipamentos",        desc: "Impressoras e periféricos" },
-      { href: "/dashboard/ajustes/smartpos",      icon: Smartphone,  label: "SmartPOS API",        desc: "API para SmartPOS", badge: "PREMIUM" },
+      { href: "/dashboard/ajustes/smartpos",      icon: Smartphone,  label: "lumiPOS API",         desc: "API para integrações", badge: "PREMIUM" },
     ],
   },
   {

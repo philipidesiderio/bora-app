@@ -333,7 +333,7 @@ const SUBMENUS: Record<string, NavSection> = {
           { href: "/dashboard/ajustes/totem", icon: "totem", label: "Totem Digital", badge: "PREMIUM", badgeColor: "yellow" },
           { href: "/dashboard/ajustes/maquininhas", icon: "maquininhas", label: "Maquininhas" },
           { href: "/dashboard/ajustes/equipamentos", icon: "equipamentos", label: "Equipamentos" },
-          { href: "/dashboard/ajustes/smartpos", icon: "smartpos", label: "SmartPOS API", badge: "PREMIUM", badgeColor: "yellow" },
+          { href: "/dashboard/ajustes/smartpos", icon: "smartpos", label: "lumiPOS API", badge: "PREMIUM", badgeColor: "yellow" },
         ]
       }
     ]

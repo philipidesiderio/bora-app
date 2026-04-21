@@ -33,10 +33,21 @@ export default function RelatoriosPage() {
   const [tab, setTab]       = useState<"sales" | "payments" | "products" | "stock">("sales");
   const dates = getPeriodDates(period);
 
-  const { data: summary }   = api.reports.salesSummary.useQuery(dates);
-  const { data: payments }  = api.reports.paymentBreakdown.useQuery(dates);
-  const { data: products }  = api.reports.productPerformance.useQuery({ ...dates, limit: 10 });
-  const { data: inventory } = api.reports.inventoryValuation.useQuery();
+  const summaryQ   = api.reports.salesSummary.useQuery(dates);
+  const paymentsQ  = api.reports.paymentBreakdown.useQuery(dates);
+  const productsQ  = api.reports.productPerformance.useQuery({ ...dates, limit: 10 });
+  const inventoryQ = api.reports.inventoryValuation.useQuery();
+
+  const summary   = summaryQ.data;
+  const payments  = paymentsQ.data;
+  const products  = productsQ.data;
+  const inventory = inventoryQ.data;
+
+  const firstError =
+    summaryQ.error?.message ||
+    paymentsQ.error?.message ||
+    productsQ.error?.message ||
+    inventoryQ.error?.message;
 
   return (
     <div className="space-y-5 pb-28 md:pb-6">
@@ -57,6 +68,12 @@ export default function RelatoriosPage() {
           </button>
         ))}
       </div>
+
+      {firstError && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm px-4 py-3">
+          Erro ao carregar relatórios: {firstError}
+        </div>
+      )}
 
       {/* KPI cards */}
       {summary && (
