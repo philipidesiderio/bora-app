@@ -27,6 +27,23 @@ export type ReceiptOrder = {
   metadata?: any;
 };
 
+export type ReceiptBusiness = {
+  name?:        string | null;
+  phone?:       string | null;
+  cnpj?:        string | null;
+  description?: string | null;
+  address?:     string | null;
+  city?:        string | null;
+  state?:       string | null;
+  receipt_settings?: {
+    showPhone?:       boolean;
+    showCnpj?:        boolean;
+    showAddress?:     boolean;
+    showDescription?: boolean;
+    footerNote?:      string;
+  } | null;
+};
+
 const METHOD_LABELS: Record<string, string> = {
   pix: "PIX", cash: "Dinheiro", credit: "Crédito",
   debit: "Débito", account: "Em aberto", voucher: "Voucher",
@@ -37,9 +54,45 @@ function money(v: number | string | undefined) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function buildReceiptText(o: ReceiptOrder, businessName = "") {
+// Aceita string (compat. antiga) ou objeto business.
+function normalizeBusiness(b: string | ReceiptBusiness | null | undefined): ReceiptBusiness {
+  if (!b) return {};
+  if (typeof b === "string") return { name: b };
+  return b;
+}
+
+function buildAddressLine(b: ReceiptBusiness): string {
+  const parts: string[] = [];
+  if (b.address) parts.push(b.address);
+  const cityUf = [b.city, b.state].filter(Boolean).join("/");
+  if (cityUf) parts.push(cityUf);
+  return parts.join(" — ");
+}
+
+function getSettings(b: ReceiptBusiness) {
+  return {
+    showPhone:       b.receipt_settings?.showPhone       ?? true,
+    showCnpj:        b.receipt_settings?.showCnpj        ?? true,
+    showAddress:     b.receipt_settings?.showAddress     ?? true,
+    showDescription: b.receipt_settings?.showDescription ?? false,
+    footerNote:      b.receipt_settings?.footerNote      ?? "",
+  };
+}
+
+export function buildReceiptText(o: ReceiptOrder, business: string | ReceiptBusiness = "") {
+  const b = normalizeBusiness(business);
+  const s = getSettings(b);
   const lines: string[] = [];
-  if (businessName) { lines.push(`*${businessName}*`); lines.push(""); }
+  if (b.name) { lines.push(`*${b.name}*`); }
+  if (s.showDescription && b.description) lines.push(b.description);
+  if (s.showCnpj && b.cnpj)               lines.push(`CNPJ: ${b.cnpj}`);
+  if (s.showPhone && b.phone)             lines.push(`Tel.: ${b.phone}`);
+  if (s.showAddress) {
+    const addr = buildAddressLine(b);
+    if (addr) lines.push(addr);
+  }
+  if (lines.length) lines.push("");
+
   lines.push(`*Recibo — Pedido #${o.number}*`);
   if (o.created_at) {
     lines.push(new Date(o.created_at).toLocaleString("pt-BR"));
@@ -72,12 +125,14 @@ export function buildReceiptText(o: ReceiptOrder, businessName = "") {
   if (addr) { lines.push(""); lines.push(`Endereço: ${addr}`); }
   if (o.notes) { lines.push(""); lines.push(`Obs.: ${o.notes}`); }
   lines.push("");
-  lines.push("Obrigado pela preferência!");
+  lines.push(s.footerNote || "Obrigado pela preferência!");
   return lines.join("\n");
 }
 
-export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
-  const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+export function buildReceiptHtml(o: ReceiptOrder, business: string | ReceiptBusiness = "") {
+  const b = normalizeBusiness(business);
+  const s = getSettings(b);
+  const esc = (x: any) => String(x ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
   const itemsRows = (o.items ?? [])
     .map(it => `<tr><td>${esc(it.quantity)}× ${esc(it.name)}</td><td style="text-align:right">${money(it.total)}</td></tr>`)
     .join("");
@@ -88,6 +143,15 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
     ? `<tr><td>Entrega</td><td style="text-align:right">+${money(o.metadata.delivery.fee)}</td></tr>` : "";
   const addr     = o.metadata?.delivery?.address;
   const expected = o.metadata?.delivery?.expectedAt;
+
+  const headerLines: string[] = [];
+  if (s.showDescription && b.description) headerLines.push(`<div class="muted">${esc(b.description)}</div>`);
+  if (s.showCnpj && b.cnpj)               headerLines.push(`<div class="muted">CNPJ ${esc(b.cnpj)}</div>`);
+  if (s.showPhone && b.phone)             headerLines.push(`<div class="muted">Tel. ${esc(b.phone)}</div>`);
+  if (s.showAddress) {
+    const a = buildAddressLine(b);
+    if (a) headerLines.push(`<div class="muted">${esc(a)}</div>`);
+  }
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>Recibo #${esc(o.number)}</title>
@@ -104,8 +168,9 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
   @media print { body { margin: 0; } .no-print { display: none; } }
 </style></head><body>
   <div class="center">
-    ${businessName ? `<h1>${esc(businessName)}</h1>` : ""}
-    <div class="muted">Recibo — Pedido #${esc(o.number)}</div>
+    ${b.name ? `<h1>${esc(b.name)}</h1>` : ""}
+    ${headerLines.join("")}
+    <div class="muted" style="margin-top:6px;">Recibo — Pedido #${esc(o.number)}</div>
     ${o.created_at ? `<div class="muted">${esc(new Date(o.created_at).toLocaleString("pt-BR"))}</div>` : ""}
   </div>
   ${o.customer?.name ? `<p><strong>Cliente:</strong> ${esc(o.customer.name)}${o.customer.phone ? ` · ${esc(o.customer.phone)}` : ""}</p>` : ""}
@@ -122,7 +187,7 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
   ${expected ? `<h2>Previsão de entrega</h2><p>${esc(new Date(expected).toLocaleString("pt-BR"))}</p>` : ""}
   ${addr ? `<h2>Endereço de entrega</h2><p>${esc(addr)}</p>` : ""}
   ${o.notes ? `<h2>Observações</h2><p>${esc(o.notes)}</p>` : ""}
-  <p class="center muted" style="margin-top:18px;">Obrigado pela preferência!</p>
+  <p class="center muted" style="margin-top:18px;">${esc(s.footerNote || "Obrigado pela preferência!")}</p>
   <div class="no-print center" style="margin-top:16px;">
     <button onclick="window.print()">Imprimir</button>
   </div>
@@ -130,8 +195,8 @@ export function buildReceiptHtml(o: ReceiptOrder, businessName = "") {
 </body></html>`;
 }
 
-export function printReceipt(o: ReceiptOrder, businessName = "") {
-  const html = buildReceiptHtml(o, businessName);
+export function printReceipt(o: ReceiptOrder, business: string | ReceiptBusiness = "") {
+  const html = buildReceiptHtml(o, business);
   const w = window.open("", "_blank", "width=420,height=640");
   if (!w) return false;
   w.document.open();
@@ -153,8 +218,8 @@ export function whatsappUrl(phone: string | null | undefined, text: string) {
   return p ? `https://wa.me/${p}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
 }
 
-export function sendWhatsappReceipt(o: ReceiptOrder, businessName = "") {
-  const text = buildReceiptText(o, businessName);
+export function sendWhatsappReceipt(o: ReceiptOrder, business: string | ReceiptBusiness = "") {
+  const text = buildReceiptText(o, business);
   const url  = whatsappUrl(o.customer?.phone, text);
   window.open(url, "_blank");
 }

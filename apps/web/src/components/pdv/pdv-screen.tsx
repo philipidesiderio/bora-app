@@ -1365,12 +1365,12 @@ export function PDVScreen() {
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
-                onClick={() => receiptDialog && printReceipt(receiptDialog.order, business?.name ?? "")}
+                onClick={() => receiptDialog && printReceipt(receiptDialog.order, (business as any) ?? "")}
               >
                 <Printer className="w-4 h-4 mr-1.5" /> Imprimir
               </Button>
               <Button
-                onClick={() => receiptDialog && sendWhatsappReceipt(receiptDialog.order, business?.name ?? "")}
+                onClick={() => receiptDialog && sendWhatsappReceipt(receiptDialog.order, (business as any) ?? "")}
                 className="bg-[#25D366] hover:bg-[#1ea855] text-white"
               >
                 <MessageCircle className="w-4 h-4 mr-1.5" /> WhatsApp

@@ -57,7 +57,7 @@ export const dashboardRouter = createTRPCRouter({
   getBusinessData: tenantProcedure.query(async ({ ctx }) => {
     const { data, error } = await ctx.supa
       .from("tenants")
-      .select("id, name, slug, phone, cnpj, description, logo_url, plan")
+      .select("id, name, slug, phone, cnpj, description, logo_url, plan, address, city, state, monthly_goal, receipt_settings")
       .eq("id", ctx.tenant.id)
       .single();
 
@@ -72,18 +72,36 @@ export const dashboardRouter = createTRPCRouter({
       cnpj:        z.string().optional(),
       description: z.string().optional(),
       logoUrl:     z.string().optional(),
+      address:     z.string().optional(),
+      city:        z.string().optional(),
+      state:       z.string().optional(),
+      monthlyGoal: z.number().min(0).optional(),
+      receiptSettings: z.object({
+        showPhone:       z.boolean().optional(),
+        showCnpj:        z.boolean().optional(),
+        showAddress:     z.boolean().optional(),
+        showDescription: z.boolean().optional(),
+        footerNote:      z.string().optional(),
+      }).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const patch: Record<string, any> = {
+        name:        input.name,
+        phone:       input.phone       ?? null,
+        cnpj:        input.cnpj        ?? null,
+        description: input.description ?? null,
+        logo_url:    input.logoUrl     ?? null,
+        address:     input.address     ?? null,
+        city:        input.city        ?? null,
+        state:       input.state       ?? null,
+        updated_at:  new Date().toISOString(),
+      };
+      if (input.monthlyGoal !== undefined)     patch.monthly_goal     = input.monthlyGoal;
+      if (input.receiptSettings !== undefined) patch.receipt_settings = input.receiptSettings;
+
       const { data, error } = await ctx.supa
         .from("tenants")
-        .update({
-          name:        input.name,
-          phone:       input.phone       ?? null,
-          cnpj:        input.cnpj        ?? null,
-          description: input.description ?? null,
-          logo_url:    input.logoUrl     ?? null,
-          updated_at:  new Date().toISOString(),
-        })
+        .update(patch)
         .eq("id", ctx.tenant.id)
         .select()
         .single();

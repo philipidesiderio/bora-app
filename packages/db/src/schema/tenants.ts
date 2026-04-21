@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
 export const planEnum = pgEnum("plan", ["free", "smart", "pro", "premium"]);
@@ -11,6 +11,11 @@ export const tenants = pgTable("tenants", {
   description:   text("description"),
   phone:         text("phone"),
   cnpj:          text("cnpj"),
+  address:       text("address"),
+  city:          text("city"),
+  state:         text("state"),
+  monthlyGoal:   numeric("monthly_goal", { precision: 12, scale: 2 }).default("0").notNull(),
+  receiptSettings: jsonb("receipt_settings").default({ showPhone: true, showCnpj: true, showAddress: true, showDescription: false, footerNote: "" }).notNull(),
   plan:          planEnum("plan").default("free").notNull(),
   planExpiresAt: timestamp("plan_expires_at"),
   isActive:      boolean("is_active").default(true).notNull(),

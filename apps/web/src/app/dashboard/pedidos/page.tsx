@@ -72,7 +72,7 @@ export default function PedidosPage() {
     paymentStatus: tab !== "all" ? tab : undefined,
   });
   const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
-  const businessName = business?.name ?? "";
+  const businessForReceipt: any = business ?? "";
 
   const invalidate = () => utils.orders.list.invalidate();
 
@@ -284,11 +284,11 @@ export default function PedidosPage() {
 
                     {/* Recibo: imprimir + WhatsApp */}
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => printReceipt(o, businessName)}
+                      <button onClick={() => printReceipt(o, businessForReceipt)}
                         className="flex-1 h-9 rounded-xl bg-muted text-foreground border border-border text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-muted/80">
                         <Printer className="h-3.5 w-3.5" />Imprimir recibo
                       </button>
-                      <button onClick={() => sendWhatsappReceipt(o, businessName)}
+                      <button onClick={() => sendWhatsappReceipt(o, businessForReceipt)}
                         className="flex-1 h-9 rounded-xl bg-[#25D366] text-white text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#1ea855]">
                         <MessageCircle className="h-3.5 w-3.5" />WhatsApp
                       </button>

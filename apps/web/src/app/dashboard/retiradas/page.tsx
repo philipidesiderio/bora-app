@@ -71,7 +71,7 @@ export default function RetiradasPage() {
   });
 
   const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
-  const businessName = business?.name ?? "";
+  const businessForReceipt: any = business ?? "";
 
   const filtered = orders.filter((o: any) => {
     if (!search) return true;
@@ -357,7 +357,7 @@ export default function RetiradasPage() {
 
                   {/* Imprimir recibo */}
                   <button
-                    onClick={() => printReceipt(o, businessName)}
+                    onClick={() => printReceipt(o, businessForReceipt)}
                     className="py-2 rounded-xl bg-muted border border-border text-foreground text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-muted/80 transition-colors"
                   >
                     <Printer className="w-3.5 h-3.5" /> Imprimir
@@ -365,7 +365,7 @@ export default function RetiradasPage() {
 
                   {/* Recibo WhatsApp */}
                   <button
-                    onClick={() => sendWhatsappReceipt(o, businessName)}
+                    onClick={() => sendWhatsappReceipt(o, businessForReceipt)}
                     className="py-2 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#1ea855] transition-colors"
                   >
                     <MessageCircle className="w-3.5 h-3.5" /> WhatsApp

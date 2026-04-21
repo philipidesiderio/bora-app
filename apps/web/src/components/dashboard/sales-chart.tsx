@@ -5,17 +5,17 @@ import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
 import { api } from "@/components/providers/trpc-provider";
 
-const MONTHLY_GOAL = 12_000; // TODO: por na config do tenant
-
 export function SalesChart() {
   const { data, isLoading } = api.dashboard.getSalesLast7Days.useQuery(undefined, {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+  const { data: business } = api.dashboard.getBusinessData.useQuery(undefined, { staleTime: 5 * 60_000 });
 
-  const buckets    = data?.buckets ?? [];
-  const monthTotal = data?.monthTotal ?? 0;
-  const pct        = Math.min(100, Math.round((monthTotal / MONTHLY_GOAL) * 100));
+  const monthlyGoal = Number((business as any)?.monthly_goal ?? 0);
+  const buckets     = data?.buckets ?? [];
+  const monthTotal  = data?.monthTotal ?? 0;
+  const pct         = monthlyGoal > 0 ? Math.min(100, Math.round((monthTotal / monthlyGoal) * 100)) : 0;
   const hasData    = buckets.some(b => b.value > 0);
 
   return (
@@ -58,10 +58,17 @@ export function SalesChart() {
         )}
         <div className="mt-4 space-y-1.5">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Meta mensal: {formatCurrency(MONTHLY_GOAL)}</span>
-            <span className="font-semibold">{formatCurrency(monthTotal)} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
+            <span className="text-muted-foreground">
+              {monthlyGoal > 0
+                ? <>Meta mensal: {formatCurrency(monthlyGoal)}</>
+                : <a href="/dashboard/ajustes/dados" className="underline hover:text-foreground">Defina sua meta mensal</a>}
+            </span>
+            <span className="font-semibold">
+              {formatCurrency(monthTotal)}
+              {monthlyGoal > 0 && <span className="text-muted-foreground font-normal"> ({pct}%)</span>}
+            </span>
           </div>
-          <Progress value={pct} className="h-1.5" />
+          {monthlyGoal > 0 && <Progress value={pct} className="h-1.5" />}
         </div>
       </CardContent>
     </Card>
