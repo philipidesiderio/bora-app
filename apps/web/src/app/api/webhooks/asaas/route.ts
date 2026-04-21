@@ -30,13 +30,14 @@ function getAdminSupabase() {
 
 export async function POST(req: NextRequest) {
   // ── 1. Validar token do webhook ────────────────────────────────────────────
-  const apiKey = process.env.ASAAS_API_KEY;
-  if (apiKey) {
+  // Usa ASAAS_WEBHOOK_TOKEN (gerado no painel Asaas) para validar a origem
+  const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN ?? process.env.ASAAS_API_KEY;
+  if (webhookToken) {
     const incoming =
       req.headers.get("access_token") ??
       req.headers.get("asaas-access-token") ??
       req.headers.get("authorization")?.replace("Bearer ", "");
-    if (incoming !== apiKey) {
+    if (incoming !== webhookToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
