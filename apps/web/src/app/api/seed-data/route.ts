@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { db, tenants, customers, products, categories, orders, orderItems } from "@bora/db";
 

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@/server/auth";
 import { toNextJsHandler } from "better-auth/next-js";
 

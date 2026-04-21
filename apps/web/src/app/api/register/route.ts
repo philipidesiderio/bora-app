@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { db, tenants, users } from "@bora/db";

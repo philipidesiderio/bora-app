@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * Webhook Asaas — confirma pagamento e atualiza plano do tenant
  *
