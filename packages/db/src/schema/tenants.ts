@@ -16,9 +16,10 @@ export const tenants = pgTable("tenants", {
   state:         text("state"),
   monthlyGoal:   numeric("monthly_goal", { precision: 12, scale: 2 }).default("0").notNull(),
   receiptSettings: jsonb("receipt_settings").default({ showPhone: true, showCnpj: true, showAddress: true, showDescription: false, footerNote: "" }).notNull(),
-  plan:          planEnum("plan").default("free").notNull(),
-  planExpiresAt: timestamp("plan_expires_at"),
-  isActive:      boolean("is_active").default(true).notNull(),
+  plan:             planEnum("plan").default("free").notNull(),
+  planExpiresAt:    timestamp("plan_expires_at"),
+  isActive:         boolean("is_active").default(true).notNull(),
+  asaasCustomerId:  text("asaas_customer_id"),
   createdAt:     timestamp("created_at").defaultNow().notNull(),
   updatedAt:     timestamp("updated_at").defaultNow().notNull(),
 });

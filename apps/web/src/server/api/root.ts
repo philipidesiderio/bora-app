@@ -10,6 +10,7 @@ import { providersRouter   } from "./routers/providers";
 import { procurementsRouter } from "./routers/procurements";
 import { couponsRouter     } from "./routers/coupons";
 import { reportsRouter     } from "./routers/reports";
+import { billingRouter     } from "./routers/billing";
 
 export const appRouter = createTRPCRouter({
   dashboard:    dashboardRouter,
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   procurements: procurementsRouter,
   coupons:      couponsRouter,
   reports:      reportsRouter,
+  billing:      billingRouter,
 });
 
 export type AppRouter = typeof appRouter;
