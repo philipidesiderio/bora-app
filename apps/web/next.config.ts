@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: ["@bora/ui", "@bora/db", "@bora/auth", "@bora/utils"],
   images: {
     remotePatterns: [
@@ -15,6 +16,7 @@ const nextConfig: NextConfig = {
         "lumipos.com",
         "lumiposok.vercel.app",
         "*.vercel.app",
+        "app.iagenium.online",
         process.env.NEXT_PUBLIC_APP_URL ?? "",
       ].filter(Boolean),
     },

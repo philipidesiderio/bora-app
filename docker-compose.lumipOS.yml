@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  lumipOS:
+    image: lumipOS:latest
+    container_name: lumipOS
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres.qlcoawqrriygjobhkjhr:lumiPos2026@aws-1-sa-east-1.pooler.supabase.com:6543/postgres
+      - DB_PROXY_URL=https://qlcoawqrriygjobhkjhr.supabase.co/functions/v1/db-proxy
+      - DB_PROXY_SECRET=bora-proxy-2024
+      - NEXT_PUBLIC_SUPABASE_URL=https://qlcoawqrriygjobhkjhr.supabase.co
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsY29hd3Fycml5Z2pvYmhramhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQ2NzAsImV4cCI6MjA5MTg3MDY3MH0.8Jl4Nsbh-HoBPJXkXgI1TCdF5ssUK8t5Kn1yNfpCSOI
+      - BETTER_AUTH_SECRET=boraapp-super-secreto-2024-philipi-123456
+      - BETTER_AUTH_URL=https://app.iagenium.online
+      - NEXT_PUBLIC_APP_URL=https://app.iagenium.online
+      - NEXT_PUBLIC_APP_NAME=lumiPOS
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsY29hd3Fycml5Z2pvYmhramhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjI5NDY3MCwiZXhwIjoyMDkxODcwNjcwfQ.QHUYssHoVqiPEFwpn2c88GghI2l8fC9IWy9SCBPe2cg
+      - ASAAS_API_KEY=$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjhmNjIyYTk0LTBiMzUtNDBkYi1iZjc1LTQzOTE3ODM2YTJiNDo6JGFhY2hfZGEwZTRiMjUtZWFhMS00MjNiLWI3MjItNzk4MGY1MzY0ZGQ0
+      - ASAAS_ENV=sandbox
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lumipOS.rule=Host(`app.iagenium.online`)"
+      - "traefik.http.routers.lumipOS.entrypoints=websecure"
+      - "traefik.http.routers.lumipOS.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lumipOS.loadbalancer.server.port=3000"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
