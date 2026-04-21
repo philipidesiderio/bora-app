@@ -36,7 +36,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=https://qlcoawqrriygjobhkjhr.supabase.co
             NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsY29hd3Fycml5Z2pvYmhramhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQ2NzAsImV4cCI6MjA5MTg3MDY3MH0.8Jl4Nsbh-HoBPJXkXgI1TCdF5ssUK8t5Kn1yNfpCSOI
-            NEXT_PUBLIC_APP_URL=https://app.iagenium.online
+            NEXT_PUBLIC_APP_URL=https://lumipos.com.br
             NEXT_PUBLIC_APP_NAME=lumiPOS
 
       - name: Notificar Portainer para atualizar

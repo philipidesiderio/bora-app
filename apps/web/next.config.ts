@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
         "lumipos.com",
         "lumiposok.vercel.app",
         "*.vercel.app",
-        "app.iagenium.online",
+        "lumipos.com.br",
         process.env.NEXT_PUBLIC_APP_URL ?? "",
       ].filter(Boolean),
     },
