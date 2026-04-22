@@ -114,33 +114,57 @@ export const billingRouter = createTRPCRouter({
           .eq("id", tenant.id);
       }
 
-      // ── 2. Criar cobrança PIX ─────────────────────────────────────────────
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dueDate = tomorrow.toISOString().slice(0, 10);
+      // ── 2. Cancelar assinatura anterior se existir (upgrade/downgrade) ───────
+      const existingSubId: string = tenant.asaas_subscription_id ?? "";
+      if (existingSubId) {
+        try { await asaas.cancelSubscription(existingSubId); } catch {}
+      }
 
-      // externalReference: "tenantId|planKey" — usado pelo webhook para atualizar o tenant
+      // ── 3. Criar assinatura recorrente mensal ─────────────────────────────
+      const today    = new Date();
+      const nextDue  = today.toISOString().slice(0, 10); // começa hoje
       const externalRef = `${tenant.id}|${input.plan}`;
 
-      const payment = await asaas.createPixPayment({
+      const subscription = await asaas.createSubscription({
         customer:          customerId,
         billingType:       "PIX",
         value:             config.price,
-        dueDate,
+        nextDueDate:       nextDue,
+        cycle:             "MONTHLY",
         description:       `${config.label} - lumiPOS (mensal)`,
         externalReference: externalRef,
       });
 
-      // ── 3. Obter QR Code PIX ──────────────────────────────────────────────
-      const qr = await asaas.getPixQrCode(payment.id);
+      // Salva ID da assinatura para cancelar em upgrades futuros
+      await ctx.supa
+        .from("tenants")
+        .update({ asaas_subscription_id: subscription.id } as any)
+        .eq("id", tenant.id);
+
+      // ── 4. Obter o primeiro pagamento gerado pela assinatura ───────────────
+      let paymentId = "";
+      try {
+        const payments = await asaas.getSubscriptionPayments(subscription.id);
+        paymentId = payments.data?.[0]?.id ?? "";
+      } catch {}
+
+      // ── 5. Gerar QR Code PIX para o primeiro pagamento ────────────────────
+      if (!paymentId) {
+        throw new TRPCError({
+          code:    "INTERNAL_SERVER_ERROR",
+          message: "Não foi possível obter o PIX da assinatura. Tente novamente.",
+        });
+      }
+
+      const qr = await asaas.getPixQrCode(paymentId);
 
       return {
-        paymentId:    payment.id,
+        paymentId,
         amount:       config.price,
         planLabel:    config.label,
-        pixQrCode:    qr.encodedImage,   // base64 PNG
-        pixCopyPaste: qr.payload,        // copia-e-cola
-        expiresAt:    qr.expirationDate ?? dueDate,
+        pixQrCode:    qr.encodedImage,
+        pixCopyPaste: qr.payload,
+        expiresAt:    qr.expirationDate ?? nextDue,
       };
     }),
 

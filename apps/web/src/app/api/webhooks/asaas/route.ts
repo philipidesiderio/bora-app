@@ -14,10 +14,13 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { uploadOfflineConversion, toGoogleAdsDateTime } from "@/lib/google-ads-conversions";
 
 // Planos válidos mapeados ao enum do banco
 const VALID_PLANS = ["smart", "pro", "premium", "free"] as const;
 type ValidPlan = (typeof VALID_PLANS)[number];
+
+const PLAN_PRICES: Record<string, number> = { smart: 39, pro: 69, premium: 99, free: 0 };
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -52,8 +55,11 @@ export async function POST(req: NextRequest) {
 
   const event = body?.event as string;
 
-  // ── 3. Só processar confirmações de pagamento ──────────────────────────────
-  if (event !== "PAYMENT_CONFIRMED" && event !== "PAYMENT_RECEIVED") {
+  // ── 3. Filtrar eventos relevantes ─────────────────────────────────────────
+  const isConfirmed = event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED";
+  const isOverdue   = event === "PAYMENT_OVERDUE";
+
+  if (!isConfirmed && !isOverdue) {
     return NextResponse.json({ ok: true, skipped: event });
   }
 
@@ -77,8 +83,16 @@ export async function POST(req: NextRequest) {
   try {
     const supa = getAdminSupabase();
 
+    // Pagamento vencido → desativa tenant
+    if (isOverdue) {
+      await supa.from("tenants").update({ is_active: false }).eq("id", tenantId);
+      console.log(`[asaas-webhook] Tenant ${tenantId} desativado por pagamento vencido`);
+      return NextResponse.json({ ok: true, tenantId, event: "OVERDUE" });
+    }
+
+    // Pagamento confirmado → ativa e renova 35 dias (tolerância de 5 dias)
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + 35);
 
     const { error } = await supa
       .from("tenants")
@@ -95,6 +109,23 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[asaas-webhook] Tenant ${tenantId} → plano ${planKey} até ${expiresAt.toDateString()}`);
+
+    // ── 6. Enviar conversão ao Google Ads (server-side, idempotente via orderId) ─
+    if (process.env.GOOGLE_ADS_DEVELOPER_TOKEN) {
+      try {
+        await uploadOfflineConversion({
+          conversionDateTime: toGoogleAdsDateTime(new Date()),
+          transactionId:      payment.id as string,
+          currencyCode:       "BRL",
+          conversionValue:    PLAN_PRICES[planKey] ?? 0,
+        });
+        console.log(`[asaas-webhook] Google Ads conversion uploaded: ${payment.id}`);
+      } catch (adsErr: any) {
+        console.error("[asaas-webhook] Google Ads upload failed:", adsErr?.message);
+        // Não bloqueia o webhook — retorna 200 mesmo se o Ads falhar
+      }
+    }
+
     return NextResponse.json({ ok: true, tenantId, plan: planKey });
   } catch (err: any) {
     console.error("[asaas-webhook] exceção:", err?.message);

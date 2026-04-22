@@ -19,7 +19,8 @@ export const tenants = pgTable("tenants", {
   plan:             planEnum("plan").default("free").notNull(),
   planExpiresAt:    timestamp("plan_expires_at"),
   isActive:         boolean("is_active").default(true).notNull(),
-  asaasCustomerId:  text("asaas_customer_id"),
+  asaasCustomerId:      text("asaas_customer_id"),
+  asaasSubscriptionId:  text("asaas_subscription_id"),
   createdAt:     timestamp("created_at").defaultNow().notNull(),
   updatedAt:     timestamp("updated_at").defaultNow().notNull(),
 });

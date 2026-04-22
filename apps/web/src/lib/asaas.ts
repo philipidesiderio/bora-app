@@ -98,3 +98,39 @@ export function getPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
 export function getPayment(paymentId: string): Promise<AsaasPayment> {
   return req(`/payments/${paymentId}`);
 }
+
+// ─── Assinaturas recorrentes ──────────────────────────────────────────────────
+
+export interface AsaasSubscription {
+  id: string;
+  status: string;
+  customer: string;
+  billingType: string;
+  value: number;
+  cycle: string;
+  nextDueDate: string;
+  externalReference?: string;
+}
+
+/** Cria uma assinatura mensal PIX — Asaas cobra automaticamente todo mês */
+export function createSubscription(data: {
+  customer:          string;
+  billingType:       "PIX";
+  value:             number;
+  nextDueDate:       string;   // YYYY-MM-DD (primeira cobrança)
+  cycle:             "MONTHLY";
+  description:       string;
+  externalReference: string;   // "tenantId|planKey"
+}): Promise<AsaasSubscription> {
+  return req("/subscriptions", "POST", data);
+}
+
+/** Cancela uma assinatura — para de cobrar nos próximos meses */
+export function cancelSubscription(subscriptionId: string): Promise<AsaasSubscription> {
+  return req(`/subscriptions/${subscriptionId}`, "DELETE");
+}
+
+/** Busca os pagamentos de uma assinatura (para pegar o PIX do primeiro) */
+export function getSubscriptionPayments(subscriptionId: string): Promise<{ data: AsaasPayment[] }> {
+  return req(`/subscriptions/${subscriptionId}/payments?limit=1&offset=0`);
+}
