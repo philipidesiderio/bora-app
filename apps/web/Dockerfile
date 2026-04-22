@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . .
 
 # Instala com hoist para garantir resolução de módulos no Docker
-RUN pnpm install --frozen-lockfile --shamefully-hoist
+RUN pnpm install --shamefully-hoist
 
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
