@@ -62,7 +62,10 @@ export const billingRouter = createTRPCRouter({
    * Retorna QR Code base64 + código copia-e-cola.
    */
   createCheckout: tenantProcedure
-    .input(z.object({ plan: z.enum(["smart", "pro", "premium"]) }))
+    .input(z.object({
+      plan:     z.enum(["smart", "pro", "premium"]),
+      cpfCnpj: z.string().min(11).max(18).optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
       if (!process.env.ASAAS_API_KEY) {
         throw new TRPCError({
@@ -77,10 +80,28 @@ export const billingRouter = createTRPCRouter({
       // ── 1. Buscar ou criar customer no Asaas ──────────────────────────────
       let customerId: string = tenant.asaas_customer_id ?? "";
 
+      // CPF/CNPJ: usa o informado agora OU o salvo no tenant
+      const cpfCnpj = input.cpfCnpj ?? tenant.cnpj ?? undefined;
+
+      if (!cpfCnpj) {
+        throw new TRPCError({
+          code:    "BAD_REQUEST",
+          message: "CPF_CNPJ_REQUIRED",
+        });
+      }
+
+      // Salva CPF/CNPJ no tenant se ainda não tinha
+      if (cpfCnpj && !tenant.cnpj) {
+        await ctx.supa
+          .from("tenants")
+          .update({ cnpj: cpfCnpj } as any)
+          .eq("id", tenant.id);
+      }
+
       if (!customerId) {
         const customer = await asaas.createCustomer({
           name:     tenant.name,
-          cpfCnpj:  tenant.cnpj   ?? undefined,
+          cpfCnpj,
           phone:    tenant.phone  ?? undefined,
           email:    (ctx.session as any).user?.email ?? undefined,
         });

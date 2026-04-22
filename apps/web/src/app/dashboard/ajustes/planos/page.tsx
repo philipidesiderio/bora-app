@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/components/providers/trpc-provider";
+import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import {
   Check, Crown, Sparkles, Zap, Rocket, Star,
@@ -106,10 +107,14 @@ export default function PlanosPage() {
   const planQ    = api.billing.getCurrentPlan.useQuery(undefined, { refetchInterval: 6000 });
   const checkout = api.billing.createCheckout.useMutation();
 
-  const [modal, setModal]       = useState<CheckoutData | null>(null);
-  const [copied, setCopied]     = useState(false);
-  const [success, setSuccess]   = useState(false);
-  const prevPlan                = useRef<string | null>(null);
+  const [modal, setModal]         = useState<CheckoutData | null>(null);
+  const [copied, setCopied]       = useState(false);
+  const [success, setSuccess]     = useState(false);
+  const [cpfModal, setCpfModal]   = useState<PaidPlanKey | null>(null);
+  const [cpfValue, setCpfValue]   = useState("");
+  const [cpfError, setCpfError]   = useState("");
+  const prevPlan                  = useRef<string | null>(null);
+  const checkoutDataRef           = useRef<CheckoutData | null>(null);
 
   const currentPlan = planQ.data?.plan ?? "free";
 
@@ -117,6 +122,18 @@ export default function PlanosPage() {
   useEffect(() => {
     if (!planQ.data) return;
     if (prevPlan.current && prevPlan.current !== planQ.data.plan) {
+      const cd = checkoutDataRef.current;
+      if (cd) {
+        const planCfg = PLANS.find(p => p.key === planQ.data!.plan);
+        trackPurchase({
+          transactionId: cd.paymentId,
+          planKey:       planQ.data.plan,
+          planLabel:     cd.planLabel,
+          value:         planCfg?.priceNum ?? cd.amount,
+          currency:      "BRL",
+        });
+        checkoutDataRef.current = null;
+      }
       setModal(null);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 6000);
@@ -124,13 +141,40 @@ export default function PlanosPage() {
     prevPlan.current = planQ.data.plan;
   }, [planQ.data?.plan]);
 
-  async function handleSubscribe(planKey: PaidPlanKey) {
+  async function handleSubscribe(planKey: PaidPlanKey, cpfCnpj?: string) {
     try {
-      const data = await checkout.mutateAsync({ plan: planKey });
+      const data = await checkout.mutateAsync({ plan: planKey, cpfCnpj });
+      const planCfg = PLANS.find(p => p.key === planKey);
+      trackBeginCheckout({
+        planKey,
+        planLabel: data.planLabel,
+        value:     planCfg?.priceNum ?? data.amount,
+        currency:  "BRL",
+      });
+      checkoutDataRef.current = data;
+      setCpfModal(null);
       setModal(data);
     } catch (err: any) {
-      alert(err?.message ?? "Erro ao gerar cobrança. Tente novamente.");
+      const msg = err?.message ?? "";
+      if (msg === "CPF_CNPJ_REQUIRED") {
+        // Abre modal para coletar CPF/CNPJ
+        setCpfValue("");
+        setCpfError("");
+        setCpfModal(planKey);
+      } else {
+        alert(msg || "Erro ao gerar cobrança. Tente novamente.");
+      }
     }
+  }
+
+  async function handleCpfSubmit() {
+    const digits = cpfValue.replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 14) {
+      setCpfError("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+      return;
+    }
+    setCpfError("");
+    if (cpfModal) await handleSubscribe(cpfModal, digits);
   }
 
   function handleCopy() {
@@ -264,6 +308,47 @@ export default function PlanosPage() {
           <span className="text-primary font-semibold cursor-pointer">Fale conosco</span>
         </p>
       </div>
+
+      {/* ─── Modal CPF/CNPJ ────────────────────────────────────────────────── */}
+      {cpfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setCpfModal(null)} />
+          <div className="relative z-10 bg-card border border-border rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="font-heading font-bold text-lg">Identificação</p>
+              <button onClick={() => setCpfModal(null)} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              O Asaas exige CPF ou CNPJ para emitir a cobrança. Informe apenas uma vez — salvamos para as próximas renovações.
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">CPF ou CNPJ (só números)</label>
+              <input
+                value={cpfValue}
+                onChange={e => { setCpfValue(e.target.value.replace(/\D/g, "")); setCpfError(""); }}
+                placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                maxLength={14}
+                className="w-full px-3 py-2 text-sm rounded-xl border border-border bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              {cpfError && (
+                <p className="text-xs text-rose-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />{cpfError}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleCpfSubmit}
+              disabled={checkout.isPending}
+              className="w-full py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            >
+              {checkout.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Continuar para pagamento
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── Modal de pagamento PIX ─────────────────────────────────────────── */}
       {modal && (
