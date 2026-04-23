@@ -1,10 +1,12 @@
 "use client";
-import { Bell, HelpCircle, Search, Menu } from "lucide-react";
+import { Bell, HelpCircle, Search, LogOut, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { User } from "@bora/db";
 import { getInitials } from "@/lib/utils";
+import { signOut } from "@/lib/auth-client";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":            "Dashboard",
@@ -25,6 +27,12 @@ interface TopbarProps { user: User }
 export function Topbar({ user }: TopbarProps) {
   const pathname = usePathname();
   const title = PAGE_TITLES[pathname] ?? "lumiPOS";
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  async function handleSignOut() {
+    await signOut();
+    window.location.href = "/auth/login";
+  }
 
   return (
     <header className="sticky top-0 z-40 h-14 md:h-16 bg-card/90 backdrop-blur border-b border-border flex items-center px-4 md:px-6 gap-3">
@@ -56,9 +64,41 @@ export function Topbar({ user }: TopbarProps) {
           <HelpCircle className="h-4 w-4" />
         </Button>
 
-        {/* Avatar mobile */}
-        <div className="flex md:hidden items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold">
-          {getInitials(user.name)}
+        {/* Avatar mobile — clicável */}
+        <div className="flex md:hidden relative">
+          <button
+            onClick={() => setUserMenuOpen(v => !v)}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors focus:outline-none"
+          >
+            {getInitials(user.name)}
+          </button>
+
+          {userMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+              <div className="absolute top-full right-0 mt-2 w-48 bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="px-3 py-2.5 border-b border-border">
+                  <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+                </div>
+                <div className="p-1">
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Mudar conta
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

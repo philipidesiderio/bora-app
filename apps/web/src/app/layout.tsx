@@ -33,6 +33,16 @@ export const metadata: Metadata = {
   description: "Gestão completa do seu negócio na palma da mão.",
   keywords: ["pdv", "ponto de venda", "gestão", "vendas", "estoque", "nota fiscal"],
   authors: [{ name: "lumiPOS" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "lumiPOS",
+  },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icons/icon-192.svg",
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -69,6 +79,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </AnalyticsProvider>
           </TRPCReactProvider>
         </ThemeProvider>
+        <Script id="register-sw" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+          }
+        `}</Script>
         {process.env.NEXT_PUBLIC_GTM_ID && (
           <Script id="gtm" strategy="afterInteractive">{`
             window.dataLayer=window.dataLayer||[];

@@ -2,27 +2,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  ClipboardList, 
-  Users, 
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  ClipboardList,
+  Users,
   MoreHorizontal,
-  Package, 
-  Wallet, 
-  Building2, 
-  BarChart3, 
-  Tag, 
-  Truck, 
-  Ticket, 
-  History, 
-  FileText, 
-  Globe, 
+  Package,
+  Wallet,
+  Building2,
+  BarChart3,
+  Tag,
+  Truck,
+  Ticket,
+  History,
+  FileText,
+  Globe,
   Gem,
   Settings,
-  PackageCheck
+  PackageCheck,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
+import { signOut } from "@/lib/auth-client";
 
 const MAIN_TABS = [
   { href: "/dashboard",          icon: LayoutDashboard, label: "Inicio"   },
@@ -49,6 +52,11 @@ const MORE_ITEMS = [
 export function BottomNav() {
   const pathname  = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  async function handleSignOut() {
+    await signOut();
+    window.location.href = "/auth/login";
+  }
 
   return (
     <>
@@ -88,6 +96,24 @@ export function BottomNav() {
               </Link>
             );
           })}
+        </div>
+
+        {/* Ações da conta */}
+        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center bg-muted/60 text-foreground hover:bg-muted transition-all active:scale-95"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span className="text-xs font-medium">Mudar conta</span>
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all active:scale-95"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-xs font-medium">Sair</span>
+          </button>
         </div>
       </div>
 

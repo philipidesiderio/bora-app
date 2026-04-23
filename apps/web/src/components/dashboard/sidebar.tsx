@@ -4,9 +4,9 @@ import { usePathname } from "next/navigation";
 import { useState, useRef } from "react";
 import { cn, getInitials, PLAN_LABELS } from "@/lib/utils";
 import type { User } from "@bora/db";
-import { 
-  ChevronRight, 
-  FileText, 
+import { LogOut, RefreshCw,
+  ChevronRight,
+  FileText,
   Calendar, 
   BarChart3, 
   FileSignature, 
@@ -352,6 +352,8 @@ function getBadgeClass(color?: "orange" | "yellow" | "default") {
   }
 }
 
+import { signOut } from "@/lib/auth-client";
+
 interface SidebarProps { user: User & { tenant?: { name: string; plan: string } | null } }
 
 // Componente do painel Flyout (submenu) - com ícones outline
@@ -442,7 +444,13 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const plan = user.tenant?.plan ?? "free";
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  async function handleSignOut() {
+    await signOut();
+    window.location.href = "/auth/login";
+  }
   
   return (
     <aside 
@@ -490,11 +498,46 @@ export function Sidebar({ user }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-border flex justify-center">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+      {/* Footer — avatar clicável com menu */}
+      <div className="p-3 border-t border-border flex justify-center relative">
+        <button
+          onClick={() => setUserMenuOpen(v => !v)}
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-xs font-bold text-white hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/50"
+          title="Menu do usuário"
+        >
           {getInitials(user.name)}
-        </div>
+        </button>
+
+        {/* Dropdown do usuário */}
+        {userMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+            <div className="absolute bottom-full left-2 mb-2 w-52 bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+              {/* Cabeçalho */}
+              <div className="px-3 py-2.5 border-b border-border">
+                <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{(user as any).email ?? ""}</p>
+              </div>
+              {/* Ações */}
+              <div className="p-1">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Mudar conta
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       
       {/* Flyout Panel - aparece ao hover */}
