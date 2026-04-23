@@ -26,22 +26,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build e push da imagem
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/lumipos:latest
-          build-args: |
-            NEXT_PUBLIC_SUPABASE_URL=https://qlcoawqrriygjobhkjhr.supabase.co
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsY29hd3Fycml5Z2pvYmhramhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQ2NzAsImV4cCI6MjA5MTg3MDY3MH0.8Jl4Nsbh-HoBPJXkXgI1TCdF5ssUK8t5Kn1yNfpCSOI
-            NEXT_PUBLIC_APP_URL=https://lumipos.com.br
-            NEXT_PUBLIC_APP_NAME=lumiPOS
-
-      - name: Notificar Portainer para atualizar
         run: |
-          echo "Imagem publicada: ghcr.io/${{ github.repository_owner }}/lumipOS:latest"
+          docker build \
+            --file apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=https://qlcoawqrriygjobhkjhr.supabase.co \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsY29hd3Fycml5Z2pvYmhramhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQ2NzAsImV4cCI6MjA5MTg3MDY3MH0.8Jl4Nsbh-HoBPJXkXgI1TCdF5ssUK8t5Kn1yNfpCSOI \
+            --build-arg NEXT_PUBLIC_APP_URL=https://lumipos.com.br \
+            --build-arg NEXT_PUBLIC_APP_NAME=lumiPOS \
+            --tag ghcr.io/${{ github.repository_owner }}/lumipos:latest \
+            --progress=plain \
+            .
+          docker push ghcr.io/${{ github.repository_owner }}/lumipos:latest
+
+      - name: Atualizar stack no Portainer
+        run: |
+          TOKEN=$(curl -s -X POST https://portainer.iagenium.online/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"chatbotgenium@gmail.com","password":"960d5aff6b33cb43c521531dcad3a5a2"}' \
+            | grep -o '"jwt":"[^"]*"' | cut -d'"' -f4)
+          STACK=$(cat docker-compose.lumipOS.yml)
+          curl -s -X PUT "https://portainer.iagenium.online/api/stacks/7?endpointId=1" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"stackFileContent\":$(echo "$STACK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"pullImage\":true}"
+          echo "Portainer atualizado!"
