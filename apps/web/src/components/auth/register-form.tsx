@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, User, Mail, Lock, Store } from "lucide-react";
 import { slugify } from "@/lib/utils";
+import { trackSignUp } from "@/lib/analytics";
 
 const registerSchema = z.object({
   name:            z.string().min(2, "Nome muito curto"),
@@ -63,6 +64,7 @@ export function RegisterForm() {
       } catch {}
 
       toast.success("Conta criada! Bem-vindo ao lumiPOS");
+      trackSignUp();
       router.push("/dashboard");
       router.refresh();
     } catch (err) {

@@ -148,12 +148,14 @@ export default function FinanceiroPage() {
 
       {/* Transações */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="all">Todas</TabsTrigger>
-          <TabsTrigger value="income">Receitas</TabsTrigger>
-          <TabsTrigger value="expense">Despesas</TabsTrigger>
-          <TabsTrigger value="pending">Pendentes</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 pb-1">
+          <TabsList className="w-max min-w-full">
+            <TabsTrigger value="all">Todas</TabsTrigger>
+            <TabsTrigger value="income">Receitas</TabsTrigger>
+            <TabsTrigger value="expense">Despesas</TabsTrigger>
+            <TabsTrigger value="pending">Pendentes</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value={tab}>
           {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />)}</div>

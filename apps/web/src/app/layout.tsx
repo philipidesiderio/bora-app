@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Syne, DM_Sans, DM_Mono } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TRPCReactProvider } from "@/components/providers/trpc-provider";
+import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "@/styles/globals.css";
 
@@ -49,12 +51,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${syne.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <body className="font-sans antialiased">
+        {process.env.NEXT_PUBLIC_GTM_ID && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <TRPCReactProvider>
-            {children}
-            <Toaster richColors position="top-right" />
+            <AnalyticsProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </AnalyticsProvider>
           </TRPCReactProvider>
         </ThemeProvider>
+        {process.env.NEXT_PUBLIC_GTM_ID && (
+          <Script id="gtm" strategy="afterInteractive">{`
+            window.dataLayer=window.dataLayer||[];
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+            var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+            j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+            f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${process.env.NEXT_PUBLIC_GTM_ID}');
+          `}</Script>
+        )}
       </body>
     </html>
   );
