@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { trackPageview } from "@/lib/analytics";
+import { trackPageview, trackBackend } from "@/lib/analytics";
 
 function NavigationTracker() {
   const pathname = usePathname();
@@ -10,12 +10,15 @@ function NavigationTracker() {
   const isFirst = useRef(true);
 
   useEffect(() => {
-    if (isFirst.current) {
-      isFirst.current = false;
-      return;
-    }
     const qs = searchParams.toString();
     const url = pathname + (qs ? `?${qs}` : "");
+
+    if (isFirst.current) {
+      isFirst.current = false;
+      // Rastreia o carregamento inicial da página também
+      trackBackend("pageview", { page: pathname });
+      return;
+    }
     trackPageview(`https://lumipos.com.br${url}`);
   }, [pathname, searchParams]);
 

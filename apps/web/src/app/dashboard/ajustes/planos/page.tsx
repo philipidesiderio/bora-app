@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/components/providers/trpc-provider";
-import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
+import { trackBeginCheckout, trackPurchase, trackClickAssinar } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import {
   Check, Crown, Sparkles, Zap, Rocket, Star,
@@ -283,7 +283,12 @@ export default function PlanosPage() {
 
               <button
                 disabled={isCurrent || isDowngrade || loading || planQ.isLoading}
-                onClick={() => plan.key !== "free" && handleSubscribe(plan.key as PaidPlanKey)}
+                onClick={() => {
+                  if (plan.key !== "free") {
+                    trackClickAssinar(plan.key);
+                    void handleSubscribe(plan.key as PaidPlanKey);
+                  }
+                }}
                 className={cn(
                   "w-full py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2",
                   isCurrent || isDowngrade

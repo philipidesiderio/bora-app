@@ -72,6 +72,124 @@ export const adminRouter = createTRPCRouter({
     };
   }),
 
+  /** Métricas de visitantes do site */
+  getAnalytics: adminProcedure.query(async () => {
+    const supa  = getAdminSupa();
+    const now   = new Date();
+    const d7    = new Date(now.getTime() - 7  * 86_400_000).toISOString();
+    const d30   = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+    const [all30, all7, todayRes] = await Promise.all([
+      supa.from("site_analytics").select("event, page, country_code, country, city, device, os, browser, session_id, created_at").gte("created_at", d30),
+      supa.from("site_analytics").select("event, session_id").gte("created_at", d7),
+      supa.from("site_analytics").select("event, session_id").gte("created_at", today),
+    ]);
+
+    const rows30  = all30.data  ?? [];
+    const rows7   = all7.data   ?? [];
+    const todayRows = todayRes.data ?? [];
+
+    // ── totais ──────────────────────────────────────────────────────────────
+    const sessions30 = new Set(rows30.filter(r => r.session_id).map(r => r.session_id)).size;
+    const sessions7  = new Set(rows7.filter(r => r.session_id).map(r => r.session_id)).size;
+    const sessionsToday = new Set(todayRows.filter(r => r.session_id).map(r => r.session_id)).size;
+
+    const pageviews30 = rows30.filter(r => r.event === "pageview").length;
+    const clickAssinar = rows30.filter(r => r.event === "click_assinar").length;
+    const checkoutStarted = rows30.filter(r => r.event === "checkout_started").length;
+    const checkoutCompleted = rows30.filter(r => r.event === "checkout_completed").length;
+
+    const conversionRate = checkoutStarted > 0
+      ? Math.round((checkoutCompleted / checkoutStarted) * 100)
+      : 0;
+
+    // ── top países ───────────────────────────────────────────────────────────
+    const countryMap: Record<string, { country: string; count: number }> = {};
+    rows30.filter(r => r.event === "pageview" && r.country_code).forEach(r => {
+      const k = r.country_code!;
+      if (!countryMap[k]) countryMap[k] = { country: r.country ?? k, count: 0 };
+      countryMap[k]!.count++;
+    });
+    const topCountries = Object.entries(countryMap)
+      .map(([code, { country, count }]) => ({ code, country, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // ── top cidades ──────────────────────────────────────────────────────────
+    const cityMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "pageview" && r.city).forEach(r => {
+      cityMap[r.city!] = (cityMap[r.city!] ?? 0) + 1;
+    });
+    const topCities = Object.entries(cityMap)
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // ── devices ───────────────────────────────────────────────────────────────
+    const deviceMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "pageview" && r.device).forEach(r => {
+      deviceMap[r.device!] = (deviceMap[r.device!] ?? 0) + 1;
+    });
+
+    // ── OS ────────────────────────────────────────────────────────────────────
+    const osMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "pageview" && r.os).forEach(r => {
+      osMap[r.os!] = (osMap[r.os!] ?? 0) + 1;
+    });
+
+    // ── páginas mais visitadas ────────────────────────────────────────────────
+    const pageMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "pageview" && r.page).forEach(r => {
+      pageMap[r.page!] = (pageMap[r.page!] ?? 0) + 1;
+    });
+    const topPages = Object.entries(pageMap)
+      .map(([page, count]) => ({ page, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // ── visitas por dia (últimos 30d) ─────────────────────────────────────────
+    const dailyMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "pageview").forEach(r => {
+      const day = (r.created_at as string).slice(0, 10);
+      dailyMap[day] = (dailyMap[day] ?? 0) + 1;
+    });
+    // preenche dias faltando com 0
+    const dailyVisits: { date: string; count: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86_400_000);
+      const key = d.toISOString().slice(0, 10);
+      dailyVisits.push({ date: key, count: dailyMap[key] ?? 0 });
+    }
+
+    // ── planos mais clicados ──────────────────────────────────────────────────
+    const planClickMap: Record<string, number> = {};
+    rows30.filter(r => r.event === "click_assinar").forEach(r => {
+      const p = (r as any).plan ?? "unknown";
+      planClickMap[p] = (planClickMap[p] ?? 0) + 1;
+    });
+
+    return {
+      // visões gerais
+      sessionsToday,
+      sessions7,
+      sessions30,
+      pageviews30,
+      clickAssinar,
+      checkoutStarted,
+      checkoutCompleted,
+      conversionRate,
+      // distribuições
+      topCountries,
+      topCities,
+      deviceMap,
+      osMap,
+      topPages,
+      dailyVisits,
+      planClickMap,
+    };
+  }),
+
   /** Tabela completa de empresas */
   getTenants: adminProcedure.query(async () => {
     const supa = getAdminSupa();

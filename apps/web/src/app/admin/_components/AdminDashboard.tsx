@@ -4,10 +4,12 @@ import { useState, useMemo } from "react";
 import { api } from "@/components/providers/trpc-provider";
 import { cn } from "@/lib/utils";
 import {
-  Building2, Users, TrendingUp, DollarSign, AlertTriangle,
+  Building2, TrendingUp, DollarSign, AlertTriangle,
   CheckCircle, XCircle, Search, RefreshCw, ShieldCheck,
   Crown, Zap, Rocket, Star, Calendar, Phone, Mail,
-  ArrowUpRight, Package,
+  ArrowUpRight, Globe, Smartphone, Monitor, Tablet,
+  MousePointerClick, ShoppingBag, MapPin, BarChart2,
+  Eye, Users,
 } from "lucide-react";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -72,15 +74,50 @@ function PlanBadge({ plan }: { plan: string }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// ─── Visitor Analytics Components ────────────────────────────────────────────
+
+function MiniBar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="w-28 truncate text-slate-600 font-medium shrink-0">{label}</span>
+      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-6 text-right text-slate-500">{count}</span>
+    </div>
+  );
+}
+
+function DailyChart({ data }: { data: { date: string; count: number }[] }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div className="flex items-end gap-0.5 h-16">
+      {data.map(d => (
+        <div key={d.date} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+          <div
+            className="w-full bg-indigo-200 hover:bg-indigo-400 rounded-sm transition-colors cursor-default"
+            style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }}
+            title={`${d.date}: ${d.count} visitas`}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [filterPlan, setFilterPlan] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
 
-  const stats   = api.admin.getStats.useQuery(undefined, { refetchInterval: 60_000 });
-  const tenants = api.admin.getTenants.useQuery(undefined, { refetchInterval: 60_000 });
+  const stats     = api.admin.getStats.useQuery(undefined, { refetchInterval: 60_000 });
+  const tenants   = api.admin.getTenants.useQuery(undefined, { refetchInterval: 60_000 });
+  const analytics = api.admin.getAnalytics.useQuery(undefined, { refetchInterval: 120_000 });
 
-  const refetch = () => { stats.refetch(); tenants.refetch(); };
+  const refetch = () => { stats.refetch(); tenants.refetch(); analytics.refetch(); };
 
   const filtered = useMemo(() => {
     let rows = tenants.data ?? [];
@@ -168,6 +205,163 @@ export default function AdminDashboard() {
             ))}
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════
+            BLOCO: ANALYTICS DE VISITANTES
+            ══════════════════════════════════════════════════════ */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 size={16} className="text-indigo-500" />
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Visitantes do site (últimos 30 dias)</h2>
+          </div>
+
+          {analytics.isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-24 animate-pulse" />
+              ))}
+            </div>
+          ) : analytics.data ? (() => {
+            const a = analytics.data;
+            const deviceTotal = Object.values(a.deviceMap).reduce((s, v) => s + v, 0) || 1;
+            return (
+              <div className="space-y-4">
+                {/* Métricas rápidas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <StatCard label="Visitantes hoje"     value={a.sessionsToday} icon={Eye}              color="bg-sky-50 text-sky-600" />
+                  <StatCard label="Visitantes 7 dias"   value={a.sessions7}     icon={Users}            color="bg-indigo-50 text-indigo-600" />
+                  <StatCard label="Clicou em Assinar"   value={a.clickAssinar}  sub="últimos 30d"       icon={MousePointerClick} color="bg-violet-50 text-violet-600" />
+                  <StatCard small label="Conversão checkout" value={`${a.conversionRate}%`}
+                    sub={`${a.checkoutCompleted}/${a.checkoutStarted} pagaram`}
+                    icon={ShoppingBag} color="bg-emerald-50 text-emerald-600" />
+                </div>
+
+                {/* Gráfico diário + países + devices */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                  {/* Gráfico 30 dias */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:col-span-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Pageviews por dia</p>
+                    <DailyChart data={a.dailyVisits} />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                      <span>{a.dailyVisits[0]?.date?.slice(5)}</span>
+                      <span>{a.dailyVisits[a.dailyVisits.length - 1]?.date?.slice(5)}</span>
+                    </div>
+                  </div>
+
+                  {/* Devices */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Dispositivos</p>
+                    <div className="space-y-2.5">
+                      {[
+                        { key: "mobile",  label: "Mobile",  icon: Smartphone },
+                        { key: "desktop", label: "Desktop", icon: Monitor    },
+                        { key: "tablet",  label: "Tablet",  icon: Tablet     },
+                      ].map(({ key, label, icon: Icon }) => {
+                        const count = a.deviceMap[key] ?? 0;
+                        const pct   = Math.round((count / deviceTotal) * 100);
+                        return (
+                          <div key={key} className="flex items-center gap-2 text-xs">
+                            <Icon size={13} className="text-slate-400 shrink-0" />
+                            <span className="w-14 text-slate-600 font-medium">{label}</span>
+                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-slate-500 w-10 text-right">{count} ({pct}%)</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* OS */}
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 mt-4">Sistema operacional</p>
+                    <div className="space-y-1.5">
+                      {Object.entries(a.osMap)
+                        .sort((x, y) => y[1] - x[1])
+                        .slice(0, 5)
+                        .map(([os, count]) => (
+                          <MiniBar key={os} label={os} count={count} max={deviceTotal} color="bg-sky-400" />
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Países + cidades + páginas */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                  {/* Países */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Globe size={13} className="text-indigo-400" />
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Países</p>
+                    </div>
+                    <div className="space-y-2">
+                      {a.topCountries.length === 0 ? (
+                        <p className="text-xs text-slate-400">Sem dados ainda.</p>
+                      ) : a.topCountries.map(({ code, country, count }) => (
+                        <MiniBar key={code} label={country || code} count={count}
+                          max={a.topCountries[0]!.count} color="bg-indigo-400" />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cidades */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <MapPin size={13} className="text-rose-400" />
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cidades</p>
+                    </div>
+                    <div className="space-y-2">
+                      {a.topCities.length === 0 ? (
+                        <p className="text-xs text-slate-400">Sem dados ainda.</p>
+                      ) : a.topCities.map(({ city, count }) => (
+                        <MiniBar key={city} label={city} count={count}
+                          max={a.topCities[0]!.count} color="bg-rose-400" />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Páginas mais visitadas */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Eye size={13} className="text-amber-500" />
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Páginas populares</p>
+                    </div>
+                    <div className="space-y-2">
+                      {a.topPages.length === 0 ? (
+                        <p className="text-xs text-slate-400">Sem dados ainda.</p>
+                      ) : a.topPages.map(({ page, count }) => (
+                        <MiniBar key={page} label={page} count={count}
+                          max={a.topPages[0]!.count} color="bg-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Funil de conversão */}
+                {(a.clickAssinar > 0 || a.checkoutStarted > 0) && (
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Funil de conversão (30 dias)</p>
+                    <div className="flex items-end gap-3 flex-wrap">
+                      {[
+                        { label: "Visitantes únicos", count: a.sessions30, color: "bg-slate-300" },
+                        { label: "Clicou em Assinar", count: a.clickAssinar, color: "bg-violet-400" },
+                        { label: "Iniciou checkout",  count: a.checkoutStarted, color: "bg-blue-400" },
+                        { label: "Pagou",             count: a.checkoutCompleted, color: "bg-emerald-500" },
+                      ].map(({ label, count, color }) => (
+                        <div key={label} className="flex-1 min-w-[80px] text-center">
+                          <div className="text-2xl font-bold text-slate-800">{count}</div>
+                          <div className={cn("h-1.5 w-full rounded-full mt-1 mb-1.5", color)} />
+                          <div className="text-[10px] text-slate-500 font-medium">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })() : null}
+        </div>
 
         {/* ── Tabela de empresas ── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
