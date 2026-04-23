@@ -80,6 +80,15 @@ export function createCustomer(data: {
   return req("/customers", "POST", data);
 }
 
+export function updateCustomer(customerId: string, data: {
+  cpfCnpj?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+}): Promise<AsaasCustomer> {
+  return req(`/customers/${customerId}`, "PUT", data);
+}
+
 export function createPixPayment(data: {
   customer: string;
   billingType: "PIX";

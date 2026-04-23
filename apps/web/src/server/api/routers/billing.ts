@@ -99,6 +99,7 @@ export const billingRouter = createTRPCRouter({
       }
 
       if (!customerId) {
+        // Cria novo customer no Asaas
         const customer = await asaas.createCustomer({
           name:     tenant.name,
           cpfCnpj,
@@ -112,6 +113,13 @@ export const billingRouter = createTRPCRouter({
           .from("tenants")
           .update({ asaas_customer_id: customerId } as any)
           .eq("id", tenant.id);
+      } else {
+        // Customer já existe — garante que tem CPF/CNPJ atualizado
+        try {
+          await asaas.updateCustomer(customerId, { cpfCnpj });
+        } catch {
+          // Se falhar (ex: CPF já cadastrado em outro customer), ignora e tenta seguir
+        }
       }
 
       // ── 2. Cancelar assinatura anterior se existir (upgrade/downgrade) ───────
