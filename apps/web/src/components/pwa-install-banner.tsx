@@ -1,80 +1,167 @@
 "use client";
-import { useEffect, useState } from "react";
-import { X, Smartphone } from "lucide-react";
+/**
+ * PWA Install Banner
+ *
+ * Android Chrome  → 1 clique → abre popup nativo de instalação ✅
+ * Android WebView → botão "Abrir no Chrome" → Chrome abre + instala ✅
+ * iOS Safari      → 2 toques obrigatórios (Apple não permite automatizar) ℹ️
+ * iOS WebView     → botão "Abrir no Safari" ✅
+ * Desktop / já instalado → não aparece
+ */
+import { useEffect, useRef, useState } from "react";
+import { Download, X } from "lucide-react";
+
+type Platform = "android-chrome" | "android-webview" | "ios-safari" | "ios-webview";
+
+function detect(): Platform | null {
+  if (typeof window === "undefined") return null;
+  const ua  = navigator.userAgent;
+  const ios = /iphone|ipad|ipod/i.test(ua);
+  const and = /android/i.test(ua);
+  if (!ios && !and) return null;
+
+  // já instalado como PWA
+  if (window.matchMedia("(display-mode: standalone)").matches) return null;
+  if ((navigator as any).standalone === true) return null;
+
+  const wv = /wv\b|whatsapp|instagram|fbav|fban|twitter|tiktok|line|telegram/i.test(ua);
+
+  if (ios)  return wv ? "ios-webview"     : "ios-safari";
+  if (and)  return wv ? "android-webview" : "android-chrome";
+  return null;
+}
 
 export function PwaInstallBanner() {
+  const [platform, setPlatform] = useState<Platform | null>(null);
   const [visible,  setVisible]  = useState(false);
-  const [platform, setPlatform] = useState<"ios" | "android" | null>(null);
-  const [prompt,   setPrompt]   = useState<any>(null);
+  const [iosStep,  setIosStep]  = useState(false);
+  const promptRef = useRef<any>(null);
 
   useEffect(() => {
-    // Já instalado como PWA (modo standalone) — não mostrar
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-    if ((navigator as any).standalone === true) return;
-
-    // Só mobile
-    const ua = navigator.userAgent.toLowerCase();
-    const isIos     = /iphone|ipad|ipod/.test(ua);
-    const isAndroid = /android/.test(ua);
-    if (!isIos && !isAndroid) return;
-
-    setPlatform(isIos ? "ios" : "android");
+    const p = detect();
+    if (!p) return;
+    setPlatform(p);
     setVisible(true);
 
-    // Chrome Android: captura evento nativo de instalação
-    const handler = (e: Event) => { e.preventDefault(); setPrompt(e); };
-    window.addEventListener("beforeinstallprompt", handler as any);
-    return () => window.removeEventListener("beforeinstallprompt", handler as any);
+    // Captura o prompt nativo do Chrome (Android)
+    const onPrompt = (e: Event) => { e.preventDefault(); promptRef.current = e; };
+    window.addEventListener("beforeinstallprompt", onPrompt as any);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt as any);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || !platform) return null;
+
+  // ── handlers ────────────────────────────────────────────────────────────────
+
+  function handleAndroidChrome() {
+    if (promptRef.current) {
+      promptRef.current.prompt();
+      promptRef.current.userChoice.then((r: any) => {
+        if (r.outcome === "accepted") setVisible(false);
+      });
+    } else {
+      // fallback: abre menu do Chrome via intent
+      window.location.href =
+        "intent://" + window.location.host + window.location.pathname +
+        "#Intent;scheme=https;package=com.android.chrome;end";
+    }
+  }
+
+  function handleAndroidWebview() {
+    // Abre o link diretamente no Chrome
+    window.location.href =
+      "intent://" + window.location.host + window.location.pathname +
+      "#Intent;scheme=https;package=com.android.chrome;end";
+  }
+
+  function handleIosWebview() {
+    // Tenta abrir no Safari (funciona na maioria dos WebViews iOS)
+    window.open(window.location.href, "_blank");
+  }
+
+  // ── render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[999] rounded-2xl shadow-2xl border border-primary/20 overflow-hidden">
-      <div className="bg-primary p-4">
-        <button
-          onClick={() => setVisible(false)}
-          className="absolute top-3 right-3 text-white/70 hover:text-white"
-        >
-          <X size={16} />
-        </button>
-
-        <div className="flex items-start gap-3 pr-6">
-          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <Smartphone size={22} className="text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-white text-sm leading-tight">
-              Instale o lumiPOS como app
-            </p>
-            <p className="text-white/80 text-xs mt-0.5">
-              Acesso rápido, sem abrir o navegador
-            </p>
-
-            {platform === "ios" ? (
-              <p className="text-white/90 text-xs mt-2 leading-relaxed">
-                Toque em <span className="font-bold">Compartilhar</span> ⬆{" "}
-                depois em <span className="font-bold">"Adicionar à Tela de Início"</span>
-              </p>
-            ) : prompt ? (
-              <button
-                onClick={async () => {
-                  prompt.prompt();
-                  const { outcome } = await prompt.userChoice;
-                  if (outcome === "accepted") setVisible(false);
-                }}
-                className="mt-2 bg-white text-primary text-xs font-bold px-4 py-1.5 rounded-full"
-              >
-                Instalar agora
-              </button>
-            ) : (
-              <p className="text-white/90 text-xs mt-2 leading-relaxed">
-                No Chrome: toque em <span className="font-bold">⋮</span> e escolha{" "}
-                <span className="font-bold">"Adicionar à tela inicial"</span>
-              </p>
-            )}
-          </div>
+    <div className="fixed bottom-4 left-3 right-3 z-[999] rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-primary px-4 py-3.5 flex items-center gap-3">
+        {/* Ícone */}
+        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 text-white font-heading font-extrabold text-xs leading-none text-center">
+          lumi<br/>POS
         </div>
+
+        {/* Conteúdo */}
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-bold text-sm leading-tight">Instalar lumiPOS</p>
+
+          {platform === "android-chrome" && (
+            <p className="text-white/75 text-xs">Adicionar na tela inicial, grátis</p>
+          )}
+          {platform === "android-webview" && (
+            <p className="text-white/75 text-xs">Abre no Chrome para instalar</p>
+          )}
+          {platform === "ios-safari" && !iosStep && (
+            <p className="text-white/75 text-xs">Adicionar na tela inicial do iPhone</p>
+          )}
+          {platform === "ios-safari" && iosStep && (
+            <p className="text-white/90 text-xs font-medium">
+              Toque em <span className="font-bold">⬆ Compartilhar</span> → <span className="font-bold">Adicionar à Tela de Início</span>
+            </p>
+          )}
+          {platform === "ios-webview" && (
+            <p className="text-white/75 text-xs">Abre no Safari para instalar</p>
+          )}
+        </div>
+
+        {/* Botão de ação */}
+        {platform === "android-chrome" && (
+          <button
+            onClick={handleAndroidChrome}
+            className="shrink-0 bg-white text-primary text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-1.5"
+          >
+            <Download size={13} />
+            Instalar
+          </button>
+        )}
+        {platform === "android-webview" && (
+          <button
+            onClick={handleAndroidWebview}
+            className="shrink-0 bg-white text-primary text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform"
+          >
+            Abrir Chrome
+          </button>
+        )}
+        {platform === "ios-safari" && !iosStep && (
+          <button
+            onClick={() => setIosStep(true)}
+            className="shrink-0 bg-white text-primary text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform flex items-center gap-1.5"
+          >
+            <Download size={13} />
+            Instalar
+          </button>
+        )}
+        {platform === "ios-safari" && iosStep && (
+          <button onClick={() => setVisible(false)} className="shrink-0 text-white/60 hover:text-white p-1">
+            <X size={18} />
+          </button>
+        )}
+        {platform === "ios-webview" && (
+          <button
+            onClick={handleIosWebview}
+            className="shrink-0 bg-white text-primary text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform"
+          >
+            Abrir Safari
+          </button>
+        )}
+
+        {/* Fechar (exceto iOS step que já tem o X) */}
+        {!(platform === "ios-safari" && iosStep) && (
+          <button
+            onClick={() => setVisible(false)}
+            className="shrink-0 text-white/50 hover:text-white/80 p-0.5 ml-0"
+          >
+            <X size={15} />
+          </button>
+        )}
       </div>
     </div>
   );
