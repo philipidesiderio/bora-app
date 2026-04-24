@@ -15,18 +15,26 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   emailAndPassword: { enabled: true },
+  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? {
+    socialProviders: {
+      google: {
+        clientId:     process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      },
+    },
+  } : {}),
   session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30 days
-    updateAge: 60 * 60 * 24,       // update daily
+    expiresIn:        60 * 60 * 24 * 30, // 30 dias
+    updateAge:        60 * 60 * 24,       // renova o token a cada 24h
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 5,
+      maxAge:  60 * 60,                   // revalida a cada 1h (era 5min — causava logout)
     },
   },
   trustedOrigins: [
     "http://localhost:3000",
+    "https://lumipos.com.br",
     "https://lumiposok.vercel.app",
-    "https://lumiposok-git-main-mktdesiderio-9864s-projects.vercel.app",
     process.env.NEXT_PUBLIC_APP_URL ?? "",
     process.env.BETTER_AUTH_URL   ?? "",
   ].filter(Boolean),

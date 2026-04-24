@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Fundo sólido sem arredondamento (o Android aplica a máscara) -->
-  <rect width="512" height="512" fill="#1a1815"/>
+  <rect width="512" height="512" fill="#7A9E7E"/>
   <!-- Conteúdo centralizado dentro da safe zone (10% padding = 51px cada lado) -->
-  <text x="256" y="234" font-family="system-ui, -apple-system, sans-serif" font-size="124" font-weight="700" fill="#87A96B" text-anchor="middle" dominant-baseline="middle">lumi</text>
-  <text x="256" y="356" font-family="system-ui, -apple-system, sans-serif" font-size="88" font-weight="300" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">POS</text>
+  <text x="256" y="234" font-family="system-ui, -apple-system, sans-serif" font-size="124" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">lumi</text>
+  <text x="256" y="356" font-family="system-ui, -apple-system, sans-serif" font-size="88" font-weight="400" fill="rgba(255,255,255,0.85)" text-anchor="middle" dominant-baseline="middle">POS</text>
 </svg>

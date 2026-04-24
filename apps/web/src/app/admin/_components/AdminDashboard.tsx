@@ -181,7 +181,12 @@ export default function AdminDashboard() {
         )}
 
         {/* ── Stat cards ── */}
-        {s ? (
+        {stats.error ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 flex items-center gap-3">
+            <XCircle size={16} className="shrink-0" />
+            <span>Erro ao carregar estatísticas. <button onClick={() => stats.refetch()} className="underline font-medium">Tentar novamente</button></span>
+          </div>
+        ) : s ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard label="Empresas total"    value={s.total}   sub={`+${s.newThisWeek} esta semana`} icon={Building2}   color="bg-indigo-50 text-indigo-600" />

@@ -74,6 +74,8 @@ export const adminRouter = createTRPCRouter({
 
   /** Métricas de visitantes do site */
   getAnalytics: adminProcedure.query(async () => {
+    // Envolvido em try/catch para não quebrar o batch tRPC caso site_analytics esteja vazia
+    try {
     const supa  = getAdminSupa();
     const now   = new Date();
     const d7    = new Date(now.getTime() - 7  * 86_400_000).toISOString();
@@ -188,6 +190,15 @@ export const adminRouter = createTRPCRouter({
       dailyVisits,
       planClickMap,
     };
+    } catch (err) {
+      // Retorna dados vazios — não quebra o batch nem bloqueia getStats/getTenants
+      console.error("[admin.getAnalytics]", err);
+      return {
+        sessionsToday: 0, sessions7: 0, sessions30: 0, pageviews30: 0,
+        clickAssinar: 0, checkoutStarted: 0, checkoutCompleted: 0, conversionRate: 0,
+        topCountries: [], topCities: [], deviceMap: {}, osMap: {}, topPages: [], dailyVisits: [], planClickMap: {},
+      };
+    }
   }),
 
   /** Tabela completa de empresas */

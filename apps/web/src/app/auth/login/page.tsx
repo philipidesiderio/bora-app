@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
+import { PwaInstallBanner } from "@/components/pwa-install-banner";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -23,6 +24,8 @@ export default function LoginPage() {
           </a>
         </p>
       </div>
+      {/* Banner de instalação PWA — aparece no celular se não instalado */}
+      <PwaInstallBanner />
     </main>
   );
 }
