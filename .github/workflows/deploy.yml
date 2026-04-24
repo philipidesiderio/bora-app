@@ -41,18 +41,26 @@ jobs:
 
       - name: Atualizar stack no Portainer
         run: |
-          # Portainer 2.39+ usa /api/auth (não /api/auth/login)
+          # Obtém token de autenticação (Portainer 2.39+ usa /api/auth)
           TOKEN=$(curl -s -X POST https://portainer.iagenium.online/api/auth \
             -H "Content-Type: application/json" \
             -d '{"username":"chatbotgenium@gmail.com","password":"960d5aff6b33cb43c521531dcad3a5a2"}' \
-            | python3 -c 'import sys,json; print(json.load(sys.stdin).get("jwt",""))')
+            | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try{ process.stdout.write(JSON.parse(d).jwt||'') }catch(e){} })")
           if [ -z "$TOKEN" ]; then echo "❌ Falha ao obter token do Portainer"; exit 1; fi
-          STACK=$(cat docker-compose.lumipOS.yml)
+          echo "✅ Token obtido"
+
+          # Serializa o docker-compose como string JSON usando Node.js (sem python)
+          STACK_JSON=$(node -e "
+            const fs = require('fs');
+            const content = fs.readFileSync('docker-compose.lumipOS.yml', 'utf8');
+            process.stdout.write(JSON.stringify(content));
+          ")
+
           RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
             "https://portainer.iagenium.online/api/stacks/7?endpointId=1" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"stackFileContent\":$(echo "$STACK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"pullImage\":true}")
+            -d "{\"stackFileContent\":${STACK_JSON},\"pullImage\":true}")
           echo "Portainer HTTP status: $RESULT"
           if [ "$RESULT" != "200" ]; then echo "❌ Falha ao atualizar stack ($RESULT)"; exit 1; fi
           echo "✅ Stack atualizado com sucesso!"
