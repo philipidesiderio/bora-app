@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.lumipos",
+    "sha256_cert_fingerprints": [
+      "2C:7D:99:E6:90:B1:90:B3:2D:40:D2:76:19:69:19:F1:AD:08:14:8F:F4:F9:EF:F1:18:37:83:EF:34:08:FF:34"
+    ]
+  }
+}]

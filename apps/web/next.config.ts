@@ -3,6 +3,18 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@bora/ui", "@bora/db", "@bora/auth", "@bora/utils"],
+  async headers() {
+    return [
+      {
+        // Necessário para TWA (Trusted Web Activity) — Android verifica este arquivo
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type",                value: "application/json" },
+          { key: "Access-Control-Allow-Origin",  value: "*" },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
