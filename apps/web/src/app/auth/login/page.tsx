@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
-import { PwaInstallBanner } from "@/components/pwa-install-banner";
 
 export const metadata: Metadata = { title: "Entrar" };
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background p-4">
+    <main className="min-h-screen flex items-center justify-center bg-background p-4 pb-32">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="font-heading text-4xl font-extrabold tracking-tight">
@@ -24,8 +23,6 @@ export default function LoginPage() {
           </a>
         </p>
       </div>
-      {/* Banner de instalação PWA — aparece no celular se não instalado */}
-      <PwaInstallBanner />
     </main>
   );
 }

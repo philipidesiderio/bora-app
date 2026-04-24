@@ -24,12 +24,9 @@ export const auth = betterAuth({
     },
   } : {}),
   session: {
-    expiresIn:        60 * 60 * 24 * 30, // 30 dias
-    updateAge:        60 * 60 * 24,       // renova o token a cada 24h
-    cookieCache: {
-      enabled: true,
-      maxAge:  60 * 60,                   // revalida a cada 1h (era 5min — causava logout)
-    },
+    expiresIn: 60 * 60 * 24 * 365, // 1 ANO — sessão permanente até logout manual
+    updateAge: 60 * 60 * 24 * 7,   // renova o token a cada 7 dias (sem bater no banco toda hora)
+    // cookieCache removido — causava logout quando servidor reiniciava
   },
   trustedOrigins: [
     "http://localhost:3000",

@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TRPCReactProvider } from "@/components/providers/trpc-provider";
 import { AnalyticsProvider } from "@/components/providers/analytics-provider";
+import { PwaInstallBanner } from "@/components/pwa-install-banner";
 import { Toaster } from "@/components/ui/sonner";
 import "@/styles/globals.css";
 
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TRPCReactProvider>
             <AnalyticsProvider>
               {children}
+              <PwaInstallBanner />
               <Toaster richColors position="top-right" />
             </AnalyticsProvider>
           </TRPCReactProvider>
