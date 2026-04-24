@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 
 RUN npm install -g pnpm@9
-RUN apk add --no-cache libc6-compat librsvg
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -10,14 +10,6 @@ COPY . .
 
 # Instala com hoist para garantir resolução de módulos no Docker
 RUN pnpm install --shamefully-hoist
-
-# Gera ícones PNG a partir dos SVGs (Play Store não aceita SVG)
-RUN rsvg-convert -w 192 -h 192 apps/web/public/icons/icon-192.svg \
-      -o apps/web/public/icons/icon-192.png && \
-    rsvg-convert -w 512 -h 512 apps/web/public/icons/icon-512.svg \
-      -o apps/web/public/icons/icon-512.png && \
-    rsvg-convert -w 512 -h 512 apps/web/public/icons/icon-maskable.svg \
-      -o apps/web/public/icons/icon-maskable-512.png
 
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
